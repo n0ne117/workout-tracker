@@ -352,7 +352,7 @@ function DangerZone() {
     setDeleting(true)
     setMsg(null)
     try {
-      const res = await api.delete('/workouts')
+      const res = await api.delete('/workouts?confirm=true')
       setMsg({ type: 'success', text: `Deleted ${res.deleted} workout${res.deleted !== 1 ? 's' : ''}.` })
     } catch (e) {
       setMsg({ type: 'error', text: e.message })

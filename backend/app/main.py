@@ -1,5 +1,9 @@
 import math
 import json
+from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -22,7 +26,15 @@ class _SafeEncoder(json.JSONEncoder):
         return obj
 
 
-app = FastAPI(title="Workout Tracker", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # on_event("startup") is deprecated in FastAPI 0.115.
+    init_db()
+    _seed_challenges()
+    yield
+
+
+app = FastAPI(title="Workout Tracker", version="1.0.0", lifespan=lifespan)
 app.router.default_response_class = JSONResponse
 
 # Monkey-patch starlette's JSON serialisation to tolerate inf/nan
@@ -40,8 +52,11 @@ _sr.JSONResponse.render = _safe_render
 
 app.add_middleware(
     CORSMiddleware,
+    # The UI is served same-origin through nginx, so CORS only matters for
+    # local development. Credentials with a wildcard origin is a combination
+    # browsers reject outright, and there are no cookies to send anyway.
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -56,33 +71,54 @@ app.include_router(backup.router)
 app.include_router(runlab.router)
 
 
+SEED_PATH = Path("/data/challenges_seed.json")
+
+
 def _seed_challenges():
-    from datetime import datetime
+    """
+    Seed the challenge list from /data/challenges_seed.json on a fresh database.
+
+    The rows used to be a literal in this file — 28 personal Conqueror
+    purchases with dates and prices, which is user data living in source and
+    shipped to anyone who clones the repo. The file lives beside the database
+    in the git-ignored data volume; if it's absent, seeding is simply skipped
+    and challenges can be added through the UI.
+    """
     from app.database import SessionLocal
     from app.models import ChallengeItem
+
+    if not SEED_PATH.exists():
+        return
+
+    try:
+        rows = json.loads(SEED_PATH.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"[seed] ignoring {SEED_PATH}: {exc}")
+        return
+
+    def parse_date(value):
+        return datetime.strptime(value, "%Y-%m-%d") if value else None
 
     db = SessionLocal()
     try:
         if db.query(ChallengeItem).count() > 0:
             return
-
-        def d(s):
-            return datetime.strptime(s, "%d.%m.%Y") if s else None
-
-        # Seed rows removed from published history: they were personal
-        # Conqueror purchases (names, dates, prices). Current versions read
-        # them from /data/challenges_seed.json, which is git-ignored.
-        rows = []
-        db.add_all([ChallengeItem(**r) for r in rows])
+        items = [
+            ChallengeItem(**{
+                **row,
+                **{k: parse_date(row.get(k))
+                   for k in ("purchase_date", "use_before", "start_date", "end_date")},
+            })
+            for row in rows
+        ]
+        db.add_all(items)
         db.commit()
+        print(f"[seed] inserted {len(items)} challenges from {SEED_PATH}")
     finally:
         db.close()
 
 
-@app.on_event("startup")
-def startup():
-    init_db()
-    _seed_challenges()
+
 
 
 @app.get("/api/health")

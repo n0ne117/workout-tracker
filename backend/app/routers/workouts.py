@@ -306,7 +306,16 @@ def trim_workout(workout_id: int, req: TrimRequest, db: Session = Depends(get_db
 
 
 @router.delete("")
-def delete_all_workouts(db: Session = Depends(get_db)):
+def delete_all_workouts(
+    confirm: bool = Query(False, description="Must be true; guards against an accidental request"),
+    db: Session = Depends(get_db),
+):
+    """Wipe every workout. The UI asks first; this makes a stray DELETE a no-op."""
+    if not confirm:
+        raise HTTPException(
+            status_code=400,
+            detail="Refusing to delete every workout without ?confirm=true",
+        )
     count = db.query(Workout).count()
     db.query(WorkoutGear).delete()
     db.query(Workout).delete()

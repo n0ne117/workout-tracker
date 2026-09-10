@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../hooks/useApi'
 import { formatSport, formatDuration, formatDistance, formatRateFromPace } from '../utils/format'
 import SportIcon from '../components/SportIcon'
+import PeriodSummary from '../components/PeriodSummary'
 import { Loader2, TrendingUp, Activity, Map, Clock, Mountain, Trophy, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -235,7 +236,13 @@ export default function Stats() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Statistics</h1>
 
-      {/* Summary cards */}
+      {/* Current week / month / year — the summary phones used to open to. */}
+      <PeriodSummary />
+
+      {/* All-time summary cards */}
+      <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide !mb-0">
+        All time
+      </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard icon={<Activity size={20} />} label="Total" value={stats.total} sub="activities" />
         <StatCard icon={<Map size={20} />} label="Distance" value={`${stats.total_distance_km.toLocaleString()} km`} />
