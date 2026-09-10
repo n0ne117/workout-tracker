@@ -1,3 +1,9 @@
+// Zone-distribution and secondary metric charts, shared by every screen size.
+//
+// Recovered from the old mobile/MobileCharts.jsx: the desktop WorkoutDetail
+// page already imported HrZoneChart and PowerZoneChart from it, so these were
+// never really mobile-specific. Renamed to say what they are rather than which
+// layout used to own them.
 import { useMemo, useRef, useState, useCallback } from 'react'
 
 // ── SVG canvas constants ───────────────────────────────────────────────────────

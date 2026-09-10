@@ -7,7 +7,8 @@ import {
   Map, Clock, Activity, Calendar, ChevronDown, ChevronRight,
   Loader2, ToggleLeft, ToggleRight, MapPin
 } from 'lucide-react'
-import { formatDate, formatDistance, formatDuration, formatSport, sportIcon } from '../utils/format'
+import { formatDate, formatDistance, formatDuration, formatSport } from '../utils/format'
+import SportIcon from '../components/SportIcon'
 import clsx from 'clsx'
 
 const GEAR_TYPES = [
@@ -356,7 +357,7 @@ export default function GearDetail() {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-0.5">
-                        <span>{sportIcon(w.sport)}</span>
+                        <SportIcon sport={w.sport} size={13} variant="plain" />
                         <span>{formatSport(w.sport)}</span>
                         <span className="text-gray-300 dark:text-gray-600">·</span>
                         <span>{formatDate(w.started_at)}</span>

@@ -4,8 +4,10 @@ import { api } from '../hooks/useApi'
 import WorkoutMap from '../components/WorkoutMap'
 import WorkoutTrimmer from '../components/WorkoutTrimmer'
 import PaceChart from '../components/PaceChart'
-import { HeartRateChart, ElevationChart, WalkRunChart, PowerChart, CadenceChart, VerticalOscillationChart, GroundContactChart } from '../components/DesktopCharts'
-import { HrZoneChart, PowerZoneChart } from '../mobile/MobileCharts'
+import { HeartRateChart, ElevationChart, WalkRunChart, PowerChart, CadenceChart, VerticalOscillationChart, GroundContactChart } from '../components/Charts'
+import { HrZoneChart, PowerZoneChart } from '../components/CompactCharts'
+import SportIcon from '../components/SportIcon'
+import { sportBadgeClass, isPaceSport } from '../utils/sports'
 import {
   ArrowLeft, Trophy, Pencil, Trash2, Save, X,
   Heart, Zap, Clock, TrendingUp, Wind, Activity,
@@ -14,8 +16,8 @@ import {
 } from 'lucide-react'
 import {
   formatDuration, formatDistance, formatDatetime,
-  formatSport, sportIcon, sportColorClass,
-  formatPace, formatSpeed, formatElevation, formatHR
+  formatSport, formatSpeed, formatElevation, formatHR,
+  formatWorkoutRate, workoutRateLabel,
 } from '../utils/format'
 import clsx from 'clsx'
 
@@ -349,9 +351,11 @@ export default function WorkoutDetail() {
 
   if (!workout) return null
 
-  const isRunOrHike = ['running', 'trail_running', 'hiking', 'walking'].includes(workout.sport)
-  const isRunning   = ['running', 'trail_running'].includes(workout.sport)
-  const isCycling   = ['cycling', 'mountain_biking', 'indoor_cycling'].includes(workout.sport)
+  const isRunning = ['running', 'trail_running'].includes(workout.sport)
+
+  // Pace/speed comes from the shared helper so this page, the list and the
+  // stats endpoint can never disagree about the same workout again.
+  const rate = formatWorkoutRate(workout)
 
   const track       = workout.track_points ?? []
   const hasCad      = track.some(p => p.cad   != null)
@@ -417,8 +421,9 @@ export default function WorkoutDetail() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className={clsx('badge', sportColorClass(workout.sport))}>
-                  {sportIcon(workout.sport)} {formatSport(workout.sport)}
+                <span className={clsx('badge', sportBadgeClass(workout.sport))}>
+                  <SportIcon sport={workout.sport} size={12} variant="plain" className="mr-1 inline align-[-2px]" />
+                  {formatSport(workout.sport)}
                 </span>
                 {workout.is_race && (
                   <span className="badge bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
@@ -494,15 +499,20 @@ export default function WorkoutDetail() {
         <StatCard icon={<Clock size={18} className="text-green-500" />}       label="Moving Time"   value={formatDuration(workout.moving_time_seconds)} />
         <StatCard icon={<MapPin size={18} className="text-brand-400" />}      label="Distance"      value={formatDistance(workout.distance_meters)} />
 
-        {isRunOrHike && (
-          <StatCard icon={<TrendingUp size={18} className="text-orange-400" />} label="Avg Pace"
-            value={formatPace(workout.distance_meters, workout.moving_time_seconds || workout.duration_seconds)} />
+        {/* One card, whichever unit this sport actually uses, always derived
+            from moving time. Replaces the old isRunOrHike / isCycling pair,
+            which left swimming and skating with no rate at all. */}
+        {rate && (
+          <StatCard
+            icon={isPaceSport(workout.sport)
+              ? <TrendingUp size={18} className="text-orange-400" />
+              : <Wind size={18} className="text-blue-400" />}
+            label={workoutRateLabel(workout.sport)}
+            value={rate}
+          />
         )}
-        {isCycling && (
-          <>
-            <StatCard icon={<Wind size={18} className="text-blue-400" />}   label="Avg Speed" value={formatSpeed(workout.avg_speed_ms)} />
-            <StatCard icon={<Wind size={18} className="text-blue-600" />}   label="Max Speed" value={formatSpeed(workout.max_speed_ms)} />
-          </>
+        {workout.max_speed_ms > 0 && !isPaceSport(workout.sport) && (
+          <StatCard icon={<Wind size={18} className="text-blue-600" />} label="Max Speed" value={formatSpeed(workout.max_speed_ms)} />
         )}
 
         <StatCard icon={<TrendingUp size={18} className="text-green-500" />}   label="Elevation ↑"  value={formatElevation(workout.elevation_gain_meters)} />

@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, ChevronDown, Trophy, Loader2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, Trophy, Loader2, Activity } from 'lucide-react'
 import {
-  formatDuration, formatDistance, formatPace, formatSpeed,
-  formatDate, formatSport, sportIcon, sportColorClass,
+  formatDuration, formatDistance, formatWorkoutRate, formatTime, movingSeconds,
 } from '../utils/format'
 import clsx from 'clsx'
+import SportIcon from './SportIcon'
 
 const STORAGE_KEY = 'workout_table_collapsed'
 const STORAGE_VERSION = 2 // bump to clear stale state from old logic
@@ -35,12 +35,10 @@ function buildDefaultOpen() {
   const openYears = new Set([String(curYear)])
   const openMonths = new Set()
 
-  // All months of the current year
   for (let m = 0; m <= curMonth; m++) {
     openMonths.add(`m-${curYear}-${m}`)
   }
 
-  // Last 3 calendar months (handles Jan/Feb roll-back into previous year)
   for (let i = 0; i < 3; i++) {
     let m = curMonth - i
     let y = curYear
@@ -78,7 +76,6 @@ export function groupWorkouts(items) {
     if (!yEntry.months.has(mKey)) yEntry.months.set(mKey, { month, year, workouts: [] })
     yEntry.months.get(mKey).workouts.push(w)
   }
-  // Sort years desc, months desc
   const years = [...map.values()].sort((a, b) => b.year - a.year)
   for (const y of years) {
     y.monthsArr = [...y.months.values()].sort((a, b) => b.month - a.month)
@@ -86,135 +83,223 @@ export function groupWorkouts(items) {
   return years
 }
 
-function WorkoutRow({ workout, linkState }) {
-  const isRun = ['running', 'trail_running', 'hiking', 'walking'].includes(workout.sport)
-  const isCyc = ['cycling', 'mountain_biking', 'indoor_cycling'].includes(workout.sport)
-  const d = new Date(workout.started_at)
-  const dayStr = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })
+// ── Shared layout model ──────────────────────────────────────────────────────
+// Flattening the tree once means the collapse rules, totals and ordering exist
+// in exactly one place, and the two presentations below stay honest: a table
+// on wide screens, cards on phones, never disagreeing about what's in a group.
 
+function totals(workouts) {
+  return {
+    count: workouts.length,
+    distance: workouts.reduce((s, w) => s + (w.distance_meters || 0), 0),
+    // Moving time, matching the summary tiles and the backend's /stats.
+    time: workouts.reduce((s, w) => s + (movingSeconds(w) || 0), 0),
+  }
+}
+
+function summaryText({ count, distance, time }) {
+  return [
+    `${count} workout${count !== 1 ? 's' : ''}`,
+    distance > 0 ? `${(distance / 1000).toFixed(0)} km` : null,
+    time > 0 ? `${Math.round(time / 3600)}h` : null,
+  ].filter(Boolean).join(' · ')
+}
+
+function flattenGroups(grouped, collapsed, searching) {
+  const isOpen = key => searching || !(collapsed[key] ?? defaultCollapsed(key))
+  const rows = []
+
+  for (const yEntry of grouped) {
+    const yKey = `y-${yEntry.year}`
+    const yWorkouts = yEntry.monthsArr.flatMap(m => m.workouts)
+    rows.push({
+      kind: 'year', key: yKey, label: String(yEntry.year),
+      open: isOpen(yKey), summary: summaryText(totals(yWorkouts)),
+    })
+    if (!isOpen(yKey)) continue
+
+    for (const mEntry of yEntry.monthsArr) {
+      const mKey = `m-${yEntry.year}-${mEntry.month}`
+      rows.push({
+        kind: 'month', key: mKey, label: MONTH_NAMES[mEntry.month],
+        open: isOpen(mKey), summary: summaryText(totals(mEntry.workouts)),
+      })
+      if (!isOpen(mKey)) continue
+
+      for (const w of mEntry.workouts) {
+        rows.push({ kind: 'workout', key: `w-${w.id}`, workout: w })
+      }
+    }
+  }
+  return rows
+}
+
+/** Rate, or elevation as a fallback for sports that have no meaningful rate. */
+function rateOrElevation(workout, opts) {
   return (
-    <tr className="group border-t border-gray-100 dark:border-gray-800/60 hover:bg-brand-50/40 dark:hover:bg-brand-900/10 transition-colors">
-      <td className="py-2 px-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap w-20">
-        {dayStr}
-      </td>
-      <td className="py-2 px-2 w-10">
-        <span className={clsx('inline-flex items-center justify-center w-7 h-7 rounded text-base leading-none', sportColorClass(workout.sport))}>
-          {sportIcon(workout.sport)}
-        </span>
-      </td>
-      <td className="py-2 px-2 max-w-xs">
-        <div className="flex items-center gap-1.5">
+    formatWorkoutRate(workout, opts) ??
+    (workout.elevation_gain_meters != null
+      ? `+${Math.round(workout.elevation_gain_meters)} m`
+      : '—')
+  )
+}
+
+// ── Wide-screen presentation: dense table ────────────────────────────────────
+
+function TableView({ rows, onToggle, linkState }) {
+  return (
+    <table className="w-full">
+      <thead>
+        <tr className="border-b border-gray-200 dark:border-gray-700">
+          <th className="py-2 px-3 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide w-20">Date</th>
+          <th className="py-2 px-2 w-10"></th>
+          <th className="py-2 px-2 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Activity</th>
+          <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Moving</th>
+          <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Dist</th>
+          <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Pace/Spd</th>
+          <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">HR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(row => {
+          if (row.kind !== 'workout') {
+            const isYear = row.kind === 'year'
+            const Chevron = row.open ? ChevronDown : ChevronRight
+            return (
+              <tr
+                key={row.key}
+                onClick={() => onToggle(row.key)}
+                className={clsx(
+                  'cursor-pointer select-none transition-colors',
+                  isYear
+                    ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800',
+                )}
+              >
+                <td colSpan={7} className={isYear ? 'py-2 px-3' : 'py-1.5 px-3'}>
+                  <div className="flex items-center gap-2">
+                    <Chevron size={isYear ? 14 : 13} className="text-gray-500 dark:text-gray-400" />
+                    <span className={isYear
+                      ? 'text-sm font-bold text-gray-800 dark:text-gray-100'
+                      : 'text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide'}>
+                      {row.label}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-1">{row.summary}</span>
+                  </div>
+                </td>
+              </tr>
+            )
+          }
+
+          const w = row.workout
+          const d = new Date(w.started_at)
+          return (
+            <tr key={row.key} className="group border-t border-gray-100 dark:border-gray-800/60 hover:bg-brand-50/40 dark:hover:bg-brand-900/10 transition-colors">
+              <td className="py-2 px-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap w-20">
+                {d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
+              </td>
+              <td className="py-2 px-2 w-10">
+                <SportIcon sport={w.sport} size={15} />
+              </td>
+              <td className="py-2 px-2 max-w-xs">
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    to={`/workouts/${w.id}`}
+                    state={linkState}
+                    className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-brand-600 dark:hover:text-brand-400 truncate transition-colors"
+                  >
+                    {w.title}
+                  </Link>
+                  {w.is_race && <Trophy size={11} className="text-yellow-500 flex-shrink-0" />}
+                </div>
+              </td>
+              <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                {formatDuration(movingSeconds(w))}
+              </td>
+              <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                {formatDistance(w.distance_meters)}
+              </td>
+              <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-500 dark:text-gray-500 whitespace-nowrap">
+                {rateOrElevation(w)}
+              </td>
+              <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-500 dark:text-gray-500 whitespace-nowrap">
+                {w.avg_heart_rate ? `${w.avg_heart_rate} bpm` : '—'}
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+// ── Phone presentation: tappable cards, same groups ──────────────────────────
+
+function CardView({ rows, onToggle, linkState }) {
+  return (
+    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+      {rows.map(row => {
+        if (row.kind !== 'workout') {
+          const isYear = row.kind === 'year'
+          const Chevron = row.open ? ChevronDown : ChevronRight
+          return (
+            <button
+              key={row.key}
+              onClick={() => onToggle(row.key)}
+              className={clsx(
+                'w-full flex items-center gap-2 px-4 text-left active:bg-gray-100 dark:active:bg-gray-800 transition-colors',
+                isYear ? 'py-2.5 bg-gray-100 dark:bg-gray-800' : 'py-2 bg-gray-50 dark:bg-gray-800/50',
+              )}
+            >
+              <Chevron size={isYear ? 15 : 14} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              <span className={isYear
+                ? 'text-sm font-bold text-gray-800 dark:text-gray-100'
+                : 'text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide'}>
+                {row.label}
+              </span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-500 ml-auto tabular-nums">{row.summary}</span>
+            </button>
+          )
+        }
+
+        const w = row.workout
+        const meta = [
+          formatDistance(w.distance_meters, { compact: true }),
+          formatDuration(movingSeconds(w), { compact: true }),
+          formatWorkoutRate(w, { compact: true }),
+        ].filter(v => v && v !== '—')
+
+        return (
           <Link
-            to={`/workouts/${workout.id}`}
+            key={row.key}
+            to={`/workouts/${w.id}`}
             state={linkState}
-            className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-brand-600 dark:hover:text-brand-400 truncate transition-colors"
+            className="flex items-center gap-3 px-4 py-3 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
           >
-            {workout.title}
+            <SportIcon sport={w.sport} size={17} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[15px] font-semibold text-gray-900 dark:text-white truncate">
+                  {w.title}
+                </span>
+                {w.is_race && <Trophy size={12} className="text-yellow-500 flex-shrink-0" />}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {meta.join(' · ')}
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <div className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums">
+                {new Date(w.started_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+              </div>
+              <div className="text-[11px] text-gray-400 dark:text-gray-600 tabular-nums">
+                {formatTime(w.started_at)}
+              </div>
+            </div>
           </Link>
-          {workout.is_race && (
-            <Trophy size={11} className="text-yellow-500 flex-shrink-0" />
-          )}
-        </div>
-      </td>
-      <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-600 dark:text-gray-400 whitespace-nowrap">
-        {formatDuration(workout.duration_seconds)}
-      </td>
-      <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-600 dark:text-gray-400 whitespace-nowrap">
-        {formatDistance(workout.distance_meters)}
-      </td>
-      <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-500 dark:text-gray-500 whitespace-nowrap">
-        {isRun
-          ? formatPace(workout.distance_meters, workout.moving_time_seconds || workout.duration_seconds)
-          : isCyc
-          ? formatSpeed(workout.avg_speed_ms)
-          : workout.elevation_gain_meters != null
-          ? `+${Math.round(workout.elevation_gain_meters)}m`
-          : '—'}
-      </td>
-      <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-500 dark:text-gray-500 whitespace-nowrap">
-        {workout.avg_heart_rate ? `${workout.avg_heart_rate}bpm` : '—'}
-      </td>
-    </tr>
-  )
-}
-
-function MonthSection({ mEntry, collapseKey, collapsed, onToggle, searching, linkState }) {
-  const isCollapsed = searching ? false : (collapsed[collapseKey] ?? defaultCollapsed(collapseKey))
-  const totalDist = mEntry.workouts.reduce((s, w) => s + (w.distance_meters || 0), 0)
-  const totalTime = mEntry.workouts.reduce((s, w) => s + (w.duration_seconds || 0), 0)
-
-  return (
-    <>
-      {/* Month header row */}
-      <tr
-        className="cursor-pointer select-none bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        onClick={() => onToggle(collapseKey)}
-      >
-        <td colSpan={7} className="py-1.5 px-3">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 dark:text-gray-500">
-              {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
-            </span>
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
-              {MONTH_NAMES[mEntry.month]}
-            </span>
-            <span className="text-xs text-gray-400 dark:text-gray-600 ml-1">
-              {mEntry.workouts.length} workout{mEntry.workouts.length !== 1 ? 's' : ''}
-              {totalDist > 0 && ` · ${(totalDist / 1000).toFixed(0)} km`}
-              {totalTime > 0 && ` · ${Math.round(totalTime / 3600)}h`}
-            </span>
-          </div>
-        </td>
-      </tr>
-      {!isCollapsed && mEntry.workouts.map(w => (
-        <WorkoutRow key={w.id} workout={w} linkState={linkState} />
-      ))}
-    </>
-  )
-}
-
-function YearSection({ yEntry, collapsed, onToggle, searching, linkState }) {
-  const yKey = `y-${yEntry.year}`
-  const isCollapsed = searching ? false : (collapsed[yKey] ?? defaultCollapsed(yKey))
-  const totalWorkouts = yEntry.monthsArr.reduce((s, m) => s + m.workouts.length, 0)
-  const totalDist = yEntry.monthsArr.reduce(
-    (s, m) => s + m.workouts.reduce((ss, w) => ss + (w.distance_meters || 0), 0), 0
-  )
-
-  return (
-    <>
-      {/* Year header */}
-      <tr
-        className="cursor-pointer select-none bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        onClick={() => onToggle(yKey)}
-      >
-        <td colSpan={7} className="py-2 px-3">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 dark:text-gray-400">
-              {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-            </span>
-            <span className="text-sm font-bold text-gray-800 dark:text-gray-100">
-              {yEntry.year}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-500">
-              {totalWorkouts} workouts
-              {totalDist > 0 && ` · ${(totalDist / 1000).toFixed(0)} km`}
-            </span>
-          </div>
-        </td>
-      </tr>
-      {!isCollapsed && yEntry.monthsArr.map(mEntry => (
-        <MonthSection
-          key={`${yEntry.year}-${mEntry.month}`}
-          mEntry={mEntry}
-          collapseKey={`m-${yEntry.year}-${mEntry.month}`}
-          collapsed={collapsed}
-          onToggle={onToggle}
-          searching={searching}
-          linkState={linkState}
-        />
-      ))}
-    </>
+        )
+      })}
+    </div>
   )
 }
 
@@ -243,15 +328,18 @@ export default function WorkoutTable({
     }
   }
 
-  const grouped = groupWorkouts(workouts)
   const searching = search.trim().length > 0
+  const rows = useMemo(
+    () => flattenGroups(groupWorkouts(workouts), collapsed, searching),
+    [workouts, collapsed, searching],
+  )
 
   if (loading) return null
 
   if (!workouts.length) {
     return (
       <div className="card p-12 text-center text-gray-400 dark:text-gray-600">
-        <div className="mb-3 text-5xl opacity-40">🏃</div>
+        <Activity size={40} className="mx-auto mb-3 opacity-30" />
         <p className="font-medium">No workouts found</p>
         <p className="text-sm mt-1">Import a .fit, .gpx or .tcx file to get started</p>
       </div>
@@ -260,38 +348,16 @@ export default function WorkoutTable({
 
   return (
     <div className="card overflow-hidden">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-700">
-            <th className="py-2 px-3 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide w-20">Date</th>
-            <th className="py-2 px-2 w-10"></th>
-            <th className="py-2 px-2 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Activity</th>
-            <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Time</th>
-            <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Dist</th>
-            <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Pace/Spd</th>
-            <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">HR</th>
-          </tr>
-        </thead>
-        <tbody>
-          {grouped.map(yEntry => (
-            <YearSection
-              key={yEntry.year}
-              yEntry={yEntry}
-              collapsed={collapsed}
-              onToggle={toggle}
-              searching={searching}
-              linkState={linkState}
-            />
-          ))}
-        </tbody>
-      </table>
+      <div className="hidden md:block">
+        <TableView rows={rows} onToggle={toggle} linkState={linkState} />
+      </div>
+      <div className="md:hidden">
+        <CardView rows={rows} onToggle={toggle} linkState={linkState} />
+      </div>
+
       {hasMore && (
         <div className="border-t border-gray-100 dark:border-gray-800 p-3 flex justify-center">
-          <button
-            onClick={onLoadMore}
-            disabled={loadingMore}
-            className="btn-secondary text-sm"
-          >
+          <button onClick={onLoadMore} disabled={loadingMore} className="btn-secondary text-sm">
             {loadingMore ? <Loader2 size={15} className="animate-spin" /> : null}
             {loadingMore ? 'Loading…' : 'Load more'}
           </button>

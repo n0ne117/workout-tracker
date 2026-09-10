@@ -187,7 +187,7 @@ export default function PaceChart({ trackPoints, hoverDist, onHoverChange }) {
               <span>{headerPt.d.toFixed(2)} km</span>
             </>
           ) : (
-            <span>avg {fmtPace(median)}/km</span>
+            <span>median {fmtPace(median)}/km</span>
           )}
         </div>
       </div>

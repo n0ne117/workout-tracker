@@ -220,15 +220,27 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
       prev = p
     }
     if (pts.length < 2) return null
+
+    // Summary stats use every point; only the drawn polyline is downsampled.
+    // Reading the peak off every-Nth sample under-reported it — a workout
+    // stored as max 142 bpm rendered "max 136".
+    const hrs = pts.map(p => p.hr)
+    const trueMax = Math.max(...hrs)
+    const avgHr   = Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length)
+
     const step = Math.ceil(pts.length / 600)
     const sampled = step > 1 ? pts.filter((_, i) => i % step === 0) : pts
-    const maxDist = sampled[sampled.length - 1].d
-    const hrs = sampled.map(p => p.hr)
-    return { sampled, maxDist, minHR: Math.max(0, Math.min(...hrs) - 5), maxHR: Math.max(...hrs) + 5 }
+    return {
+      sampled,
+      maxDist: pts[pts.length - 1].d,
+      minHR: Math.max(0, Math.min(...hrs) - 5),
+      maxHR: trueMax + 5,
+      trueMax, avgHr,
+    }
   }, [trackPoints])
 
   if (!data) return null
-  const { sampled, maxDist, minHR, maxHR } = data
+  const { sampled, maxDist, minHR, maxHR, trueMax, avgHr } = data
 
   const scaleX = d  => (d / maxDist) * INNER_W
   const scaleY = hr => INNER_H - ((hr - minHR) / (maxHR - minHR)) * INNER_H
@@ -261,7 +273,6 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
   const extTipY     = (extPt && crossY != null) ? svgOffsetY + (PAD.top  + crossY) * svgScale : null
   const extFlipLeft = extTipX != null && (extTipX / wrapperWidth) > 0.65
   const headerPt    = localHover?.pt ?? extPt
-  const avgHr       = Math.round(sampled.reduce((s, p) => s + p.hr, 0) / sampled.length)
 
   return (
     <div className="card p-4">
@@ -271,7 +282,7 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
           {headerPt ? (
             <><span className={`font-semibold ${localHover ? 'text-red-500' : 'text-red-400/70'}`}>{headerPt.hr} bpm</span><span>{headerPt.d.toFixed(2)} km</span></>
           ) : (
-            <><span>avg {avgHr} bpm</span><span>max {Math.max(...sampled.map(p => p.hr))} bpm</span></>
+            <><span>avg {avgHr} bpm</span><span>max {trueMax} bpm</span></>
           )}
         </div>
       </div>

@@ -58,13 +58,20 @@ class WorkoutResponse(WorkoutBase):
     updated_at: Optional[datetime] = None
 
     @classmethod
-    def from_orm_with_track_flag(cls, workout):
+    def from_orm_with_track_flag(cls, workout, has_track=None):
+        """
+        Build a response without ever reading track_points.
+
+        Pass `has_track` when the column is deferred — otherwise touching
+        `workout.track_points` would lazy-load a several-hundred-KB blob per
+        row, which is exactly what deferring it was meant to avoid.
+        """
         data = {
             c.name: getattr(workout, c.name)
             for c in workout.__table__.columns
             if c.name != "track_points"
         }
-        data["has_track"] = bool(workout.track_points)
+        data["has_track"] = bool(workout.track_points) if has_track is None else has_track
         return cls(**data)
 
 

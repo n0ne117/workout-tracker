@@ -21,7 +21,11 @@ def _gear_stats_batch(gear_ids: list, db: Session) -> dict:
             WorkoutGear.gear_id,
             func.count(Workout.id).label('activity_count'),
             func.coalesce(func.sum(Workout.distance_meters), 0).label('total_distance_meters'),
-            func.coalesce(func.sum(Workout.duration_seconds), 0).label('total_duration_seconds'),
+            # Moving time, not elapsed: a shoe or a bike wears while it moves,
+            # and elapsed time inflates every "service after N hours" limit.
+            func.coalesce(func.sum(
+                func.coalesce(Workout.moving_time_seconds, Workout.duration_seconds)
+            ), 0).label('total_duration_seconds'),
             func.count(distinct(func.date(Workout.started_at))).label('days_count'),
         )
         .join(Workout, Workout.id == WorkoutGear.workout_id)

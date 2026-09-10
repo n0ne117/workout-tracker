@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, X, Trophy, Filter } from 'lucide-react'
-import { formatSport, sportIcon } from '../utils/format'
+import { formatSport } from '../utils/format'
+import SportIcon from './SportIcon'
 import { api } from '../hooks/useApi'
 import clsx from 'clsx'
 
@@ -90,7 +91,7 @@ export default function FilterBar({ filters, onChange, collapseControl }) {
                       : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   )}
                 >
-                  {sportIcon(cat)} {formatSport(cat)}
+                  <SportIcon sport={cat} size={13} variant="plain" className="inline-block mr-1.5 align-[-2px]" />{formatSport(cat)}
                 </button>
               ))}
             </div>

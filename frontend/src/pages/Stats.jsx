@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../hooks/useApi'
-import { formatSport, formatDuration, formatDistance, sportIcon } from '../utils/format'
+import { formatSport, formatDuration, formatDistance, formatRateFromPace } from '../utils/format'
+import SportIcon from '../components/SportIcon'
 import { Loader2, TrendingUp, Activity, Map, Clock, Mountain, Trophy, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -162,7 +163,7 @@ function SportBreakdown({ bySport, metric = 'count' }) {
       {sorted.map(({ sport, value }) => (
         <div key={sport} className="flex items-center gap-3">
           <div className="w-28 flex items-center gap-1.5 flex-shrink-0">
-            <span className="text-sm leading-none">{sportIcon(sport)}</span>
+            <SportIcon sport={sport} size={14} variant="plain" />
             <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{formatSport(sport)}</span>
           </div>
           <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-4 overflow-hidden">
@@ -177,7 +178,7 @@ function SportBreakdown({ bySport, metric = 'count' }) {
           </div>
           <span className="text-xs font-mono text-gray-500 w-16 text-right flex-shrink-0">{
             metric === 'distance_km' ? `${value.toFixed(0)} km`
-            : metric === 'duration_hours' ? `${value.toFixed(0)}h`
+            : metric === 'moving_hours' ? `${value.toFixed(0)}h`
             : value
           }</span>
         </div>
@@ -219,16 +220,16 @@ export default function Stats() {
 
   const CHART_METRIC_OPTS = [
     { key: 'distance_km', label: 'Distance' },
-    { key: 'duration_hours', label: 'Time' },
+    { key: 'moving_hours', label: 'Time' },
     { key: 'count', label: 'Count' },
   ]
   const SPORT_METRIC_OPTS = [
     { key: 'count', label: 'Activities' },
     { key: 'distance_km', label: 'Distance' },
-    { key: 'duration_hours', label: 'Time' },
+    { key: 'moving_hours', label: 'Time' },
   ]
 
-  const chartUnit = chartMetric === 'distance_km' ? ' km' : chartMetric === 'duration_hours' ? 'h' : ''
+  const chartUnit = chartMetric === 'distance_km' ? ' km' : chartMetric === 'moving_hours' ? 'h' : ''
 
   return (
     <div className="space-y-6">
@@ -238,7 +239,8 @@ export default function Stats() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard icon={<Activity size={20} />} label="Total" value={stats.total} sub="activities" />
         <StatCard icon={<Map size={20} />} label="Distance" value={`${stats.total_distance_km.toLocaleString()} km`} />
-        <StatCard icon={<Clock size={20} />} label="Moving Time" value={`${stats.total_duration_hours.toLocaleString()} h`} />
+        <StatCard icon={<Clock size={20} />} label="Moving Time" value={`${stats.total_moving_hours.toLocaleString()} h`}
+          sub={`${stats.total_elapsed_hours.toLocaleString()} h elapsed`} />
         <StatCard icon={<Mountain size={20} />} label="Elevation" value={`${stats.total_elevation_m.toLocaleString()} m`} />
         <StatCard icon={<Trophy size={20} />} label="Races" value={stats.races} />
       </div>
@@ -262,7 +264,7 @@ export default function Stats() {
                       <span>Distance</span><span className="font-mono">{y.distance_km} km</span>
                     </div>
                     <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                      <span>Time</span><span className="font-mono">{y.duration_hours} h</span>
+                      <span>Time</span><span className="font-mono">{y.moving_hours} h</span>
                     </div>
                   </div>
                 </div>
@@ -362,7 +364,7 @@ export default function Stats() {
             {Object.entries(stats.prs).map(([sport, pr]) => (
               <div key={sport} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base leading-none">{sportIcon(sport)}</span>
+                  <SportIcon sport={sport} size={16} variant="plain" />
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{formatSport(sport)}</span>
                 </div>
                 <div className="space-y-1">
@@ -372,14 +374,16 @@ export default function Stats() {
                       <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{formatDistance(pr.longest_m)}</span>
                     </div>
                   )}
-                  {pr.fastest_pace_s_per_km && (
-                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>Best pace</span>
-                      <span className="font-mono font-medium text-gray-700 dark:text-gray-300">
-                        {formatDuration(pr.fastest_pace_s_per_km)}/km
-                      </span>
-                    </div>
-                  )}
+                  {(() => {
+                    const rate = formatRateFromPace(pr.fastest_pace_s_per_km, sport)
+                    if (!rate) return null
+                    return (
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>{rate.label}</span>
+                        <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{rate.value}</span>
+                      </div>
+                    )
+                  })()}
                   {pr.highest_elevation_m && (
                     <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                       <span>Most elevation</span>
