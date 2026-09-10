@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Workouts" />
+    <meta name="theme-color" content="#2563eb" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Workout Tracker</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+  </head>
+  <body>
+    <!--
+      Set --app-height before React mounts so the first paint never falls back to
+      100dvh, which is not properly initialized on iOS PWA cold start.
+      window.innerHeight is stable in standalone mode (no collapsing URL bar).
+    -->
+    <script>
+      // In standalone PWA mode, 100vh is stable and correct — no URL bar to fight.
+      // Only set --app-height in Safari, where window.innerHeight correctly tracks
+      // the visible area as the collapsing URL bar grows/shrinks.
+      var _isStandalone = window.navigator.standalone === true;
+      if (!_isStandalone) {
+        function _syncAppHeight() {
+          document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+        }
+        _syncAppHeight();
+        window.addEventListener('resize', _syncAppHeight);
+      }
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

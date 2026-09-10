@@ -1,0 +1,45 @@
+# ── Workout data — NEVER commit ───────────────────────────────────────────────
+# Contains 1600+ personal activities, GPS tracks and the Intervals.icu API key.
+workout_data/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+backup*.json
+*-backup.json
+
+# ── Secrets / local config ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# ── Node / Vite ──────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# ── Imports / uploads ────────────────────────────────────────────────────────
+*.fit
+*.gpx
+*.tcx
+*.kml
+*.kmz
+
+# ── OS / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
