@@ -1,5 +1,6 @@
 import math
 import json
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -34,7 +35,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Workout Tracker", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Workout Tracker", version="1.1.0", lifespan=lifespan)
 app.router.default_response_class = JSONResponse
 
 # Monkey-patch starlette's JSON serialisation to tolerate inf/nan
@@ -71,7 +72,7 @@ app.include_router(backup.router)
 app.include_router(runlab.router)
 
 
-SEED_PATH = Path("/data/challenges_seed.json")
+SEED_PATH = Path(os.environ.get("DATA_DIR", "/data")) / "challenges_seed.json"
 
 
 def _seed_challenges():

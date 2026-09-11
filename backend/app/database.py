@@ -1,12 +1,22 @@
+import os
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "sqlite:////data/workouts.db"
-
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
+# DATA_DIR lets the published all-in-one image relocate the database without a
+# rebuild; DATABASE_URL overrides it outright for anything non-SQLite.
+DATA_DIR = os.environ.get("DATA_DIR", "/data")
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    f"sqlite:///{os.path.join(DATA_DIR, 'workouts.db')}",
 )
+
+# check_same_thread is a SQLite-only argument, so only pass it for SQLite.
+_connect_args = (
+    {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+)
+
+engine = create_engine(DATABASE_URL, connect_args=_connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

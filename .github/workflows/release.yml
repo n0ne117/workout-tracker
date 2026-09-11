@@ -1,0 +1,136 @@
+name: Release
+
+# Pushing a v* tag builds the all-in-one image, publishes it to GHCR and
+# creates the GitHub release. Nothing runs on ordinary pushes, so day-to-day
+# commits don't burn Actions minutes.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)publish, e.g. v1.1.0'
+        required: true
+
+permissions:
+  contents: write   # create the release
+  packages: write   # push to ghcr.io
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0   # full history so release notes can diff tags
+
+      - name: Resolve version
+        id: version
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG"                      >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}"              >> "$GITHUB_OUTPUT"
+          # Lowercase the owner — GHCR rejects uppercase in image paths.
+          echo "image=$REGISTRY/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Unraid is x86-64 only. Add linux/arm64 here if you ever want to run
+      # this on a Pi or an Apple-silicon Docker host.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          provenance: false   # keeps the GHCR package page showing one clean manifest
+          tags: |
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
+            ${{ steps.version.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Smoke-test the published image
+        run: |
+          IMAGE="${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}"
+          mkdir -p /tmp/wt-data
+          docker run -d --name smoke -p 8099:80 -v /tmp/wt-data:/data "$IMAGE"
+
+          for i in $(seq 1 45); do
+            if curl -sf http://localhost:8099/api/health >/dev/null; then ok=1; break; fi
+            sleep 2
+          done
+          if [ "${ok:-0}" != "1" ]; then
+            echo "::error::container never became healthy"
+            docker logs smoke
+            exit 1
+          fi
+
+          # The SPA shell and the API must both answer through nginx.
+          curl -sf http://localhost:8099/            -o /dev/null
+          curl -sf http://localhost:8099/stats       -o /dev/null
+          curl -sf "http://localhost:8099/api/workouts?page_size=1" -o /dev/null
+          test -f /tmp/wt-data/workouts.db || { echo "::error::database not created"; exit 1; }
+          echo "smoke test passed"
+          docker rm -f smoke
+
+      - name: Extract release notes
+        id: notes
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          # Pull this version's section out of CHANGELOG.md; fall back to
+          # GitHub's auto-generated commit list if there isn't one.
+          if [ -f CHANGELOG.md ] && awk -v v="$V" '
+              $0 ~ "^## \\[?"v"\\]?" {found=1; next}
+              found && /^## / {exit}
+              found {print}
+            ' CHANGELOG.md | grep -q '[^[:space:]]'; then
+            awk -v v="$V" '
+              $0 ~ "^## \\[?"v"\\]?" {found=1; next}
+              found && /^## / {exit}
+              found {print}
+            ' CHANGELOG.md > /tmp/notes.md
+            echo "generate=false" >> "$GITHUB_OUTPUT"
+          else
+            : > /tmp/notes.md
+            echo "generate=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          {
+            echo ""
+            echo "## Docker image"
+            echo ""
+            echo '```'
+            echo "docker pull ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}"
+            echo '```'
+            echo ""
+            echo "Single container: port **80**, data volume **/data**."
+            echo "See [Unraid setup](https://github.com/${{ github.repository }}#unraid) for the template."
+          } >> /tmp/notes.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS="--title ${{ steps.version.outputs.tag }} --notes-file /tmp/notes.md"
+          if [ "${{ steps.notes.outputs.generate }}" = "true" ]; then
+            ARGS="$ARGS --generate-notes"
+          fi
+          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            gh release edit "${{ steps.version.outputs.tag }}" --notes-file /tmp/notes.md
+          else
+            gh release create "${{ steps.version.outputs.tag }}" $ARGS
+          fi

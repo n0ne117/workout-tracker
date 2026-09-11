@@ -1,0 +1,55 @@
+# Build context for the published all-in-one image.
+#
+# workout_data/ is the first entry for a reason: it holds the SQLite database
+# with the full activity history, GPS tracks and the Intervals.icu API key.
+# It must never enter the build context, let alone a pushed image layer.
+workout_data/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+challenges_seed.json
+backup*.json
+
+.env
+.env.*
+.git/
+.github/
+.gitignore
+.claude/
+
+# Rebuilt inside the image, so shipping them would only invalidate cache.
+node_modules/
+dist/
+.vite/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Docs and host-only assets contribute nothing to the runtime image.
+README.md
+CHANGELOG.md
+LICENSE
+unraid/
+docker-compose*.yml
+
+*.fit
+*.gpx
+*.tcx
+*.kml
+*.kmz
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# The per-service build files belong to the compose setup, not this image.
+backend/Dockerfile
+backend/.dockerignore
+frontend/Dockerfile
+frontend/.dockerignore
+frontend/nginx.conf

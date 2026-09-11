@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<!--
+  Unraid container template.
+
+  Install by copying this file to /boot/config/plugins/dockerMan/templates-user/
+  on the Unraid host, then Docker → Add Container → select "workout-tracker"
+  from the template dropdown. Or just fill the same fields in by hand.
+-->
+<Container version="2">
+  <Name>workout-tracker</Name>
+  <Repository>ghcr.io/n0ne117/workout-tracker:latest</Repository>
+  <Registry>https://github.com/n0ne117/workout-tracker/pkgs/container/workout-tracker</Registry>
+  <Project>https://github.com/n0ne117/workout-tracker</Project>
+  <Support>https://github.com/n0ne117/workout-tracker/issues</Support>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Category>Other:</Category>
+  <WebUI>http://[IP]:[PORT:80]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/n0ne117/workout-tracker/main/frontend/public/favicon.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+
+  <Overview>
+    Self-hosted training log. Imports activities from Intervals.icu, Garmin
+    Connect and raw FIT/GPX/TCX/KML files, then adds the views those services
+    don't: collapsible workout history, route maps and charts, per-sport
+    personal records, gear wear tracking, a race calendar, virtual challenge
+    progress, and CTL/ATL/TSB training load.
+
+    Everything runs in this one container — nginx serves the interface and
+    proxies the API to uvicorn internally. All data stays in the mapped
+    appdata folder.
+
+    IMPORTANT: the database is SQLite. Point the Data path at a cache-backed
+    location (for example /mnt/cache/appdata/workout-tracker, or an appdata
+    share set to cache-only). SQLite over Unraid's /mnt/user FUSE layer can
+    hit file-locking problems.
+  </Overview>
+
+  <Config Name="WebUI Port"
+          Target="80"
+          Default="7733"
+          Mode="tcp"
+          Description="Port for the web interface."
+          Type="Port"
+          Display="always"
+          Required="true"
+          Mask="false">7733</Config>
+
+  <Config Name="Data"
+          Target="/data"
+          Default="/mnt/cache/appdata/workout-tracker"
+          Mode="rw"
+          Description="Holds workouts.db and, optionally, challenges_seed.json. Use a cache-backed path — SQLite on the /mnt/user FUSE layer can hit locking issues."
+          Type="Path"
+          Display="always"
+          Required="true"
+          Mask="false">/mnt/cache/appdata/workout-tracker</Config>
+
+  <Config Name="PUID"
+          Target="PUID"
+          Default="99"
+          Description="User the API runs as. 99 is Unraid's 'nobody'. Leave blank to run as root."
+          Type="Variable"
+          Display="advanced"
+          Required="false"
+          Mask="false">99</Config>
+
+  <Config Name="PGID"
+          Target="PGID"
+          Default="100"
+          Description="Group the API runs as. 100 is Unraid's 'users'."
+          Type="Variable"
+          Display="advanced"
+          Required="false"
+          Mask="false">100</Config>
+
+  <Config Name="TZ"
+          Target="TZ"
+          Default="Europe/Vienna"
+          Description="Container timezone, used for log timestamps. Workout dates are stored as recorded and grouped using your browser's timezone, so this does not affect the statistics."
+          Type="Variable"
+          Display="advanced"
+          Required="false"
+          Mask="false">Europe/Vienna</Config>
+</Container>

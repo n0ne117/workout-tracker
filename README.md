@@ -23,13 +23,66 @@ Runs as two containers behind nginx. Your data stays on your machine.
 The interface is responsive: one implementation of every screen, with a
 bottom tab bar on phones and a full header nav from `md` up.
 
-## Running it
+## Install
+
+### Unraid
+
+The published image is a single container: one port, one volume.
+
+1. **Docker → Add Container**, switch to *Advanced view*
+2. **Repository**: `ghcr.io/n0ne117/workout-tracker:latest`
+3. **Port**: container `80` → host `7733`
+4. **Path**: container `/data` → host `/mnt/cache/appdata/workout-tracker`
+5. Optionally set **PUID** `99` and **PGID** `100` so files aren't root-owned
+
+Or drop [`unraid/workout-tracker.xml`](unraid/workout-tracker.xml) into
+`/boot/config/plugins/dockerMan/templates-user/` on the host and pick
+*workout-tracker* from the template dropdown.
+
+> **Put the data on cache, not `/mnt/user`.** The database is SQLite, and
+> SQLite over Unraid's FUSE layer can hit file-locking problems. Either point
+> the path at `/mnt/cache/...` or set the appdata share to cache-only.
+
+While the GHCR package is private, authenticate the host once with a
+[classic PAT](https://github.com/settings/tokens) carrying `read:packages`:
+
+```bash
+docker login ghcr.io -u n0ne117
+```
+
+Making the package public on its
+[GHCR page](https://github.com/n0ne117/workout-tracker/pkgs/container/workout-tracker)
+removes that step — package visibility is separate from repository visibility,
+so a public image does not expose the source.
+
+### Any other Docker host
+
+```bash
+docker run -d --name workout-tracker \
+  -p 7733:80 \
+  -v /srv/workout-tracker:/data \
+  --restart unless-stopped \
+  ghcr.io/n0ne117/workout-tracker:latest
+```
+
+| Variable       | Default            | Purpose                                              |
+| -------------- | ------------------ | ---------------------------------------------------- |
+| `PUID`/`PGID`  | unset (runs as root) | Drop the API process to this user/group            |
+| `DATA_DIR`     | `/data`            | Where the SQLite database lives                      |
+| `DATABASE_URL` | derived from `DATA_DIR` | Full SQLAlchemy URL, overriding `DATA_DIR`      |
+| `TZ`           | `UTC`              | Container timezone; affects log timestamps only      |
+
+Upgrades are `docker pull` plus a recreate — schema migrations are additive
+and run automatically at startup.
+
+## Building from source
 
 ```bash
 docker compose up -d --build
 ```
 
-Then open <http://localhost:7733>.
+This uses the two-service `docker-compose.yml` (separate backend and nginx
+containers) and is the development setup. Then open <http://localhost:7733>.
 
 The SQLite database lives in `workout_data/`, mounted into the backend at
 `/data`. That directory is git-ignored and holds your entire activity
