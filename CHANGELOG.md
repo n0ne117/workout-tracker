@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.1
+
+### Added
+
+- **Start time in the workout list.** Duplicate imports share a timestamp, so
+  showing it lines them up as visibly identical adjacent rows.
+
+### Fixed
+
+- **The importer created duplicate workouts.** Intervals.icu can hold several
+  records for one physical activity — a re-upload, a re-sync, a re-processed
+  copy — each with its own id. Matching on that id alone imported every one
+  as a separate workout: a single swim on 8 September became four rows, and a
+  2015 ride exists three times with identical start and duration but distances
+  of 19.3, 23.3 and 23.3 km. Imports now also reject an activity whose start
+  time and sport match something already stored, which two genuinely different
+  activities cannot do. Verified against real data: the same sync that
+  previously added 8 rows now imports 3 genuinely new ones and skips 39.
+
+  This mattered more with 1.2.0's scheduled sync, which would otherwise have
+  accumulated duplicates unattended. Existing duplicates are untouched — 61
+  rows across 51 groups, inflating totals by roughly 337 km.
+
 ## 1.2.0
 
 ### Added

@@ -152,6 +152,7 @@ function TableView({ rows, onToggle, linkState }) {
       <thead>
         <tr className="border-b border-gray-200 dark:border-gray-700">
           <th className="py-2 px-3 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide w-20">Date</th>
+          <th className="py-2 px-2 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide w-14">Time</th>
           <th className="py-2 px-2 w-10"></th>
           <th className="py-2 px-2 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Activity</th>
           <th className="py-2 px-3 text-right text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Moving</th>
@@ -176,7 +177,7 @@ function TableView({ rows, onToggle, linkState }) {
                     : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800',
                 )}
               >
-                <td colSpan={7} className={isYear ? 'py-2 px-3' : 'py-1.5 px-3'}>
+                <td colSpan={8} className={isYear ? 'py-2 px-3' : 'py-1.5 px-3'}>
                   <div className="flex items-center gap-2">
                     <Chevron size={isYear ? 14 : 13} className="text-gray-500 dark:text-gray-400" />
                     <span className={isYear
@@ -197,6 +198,9 @@ function TableView({ rows, onToggle, linkState }) {
             <tr key={row.key} className="group border-t border-gray-100 dark:border-gray-800/60 hover:bg-brand-50/40 dark:hover:bg-brand-900/10 transition-colors">
               <td className="py-2 px-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap w-20">
                 {d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
+              </td>
+              <td className="py-2 px-2 text-xs tabular-nums text-gray-400 dark:text-gray-500 whitespace-nowrap w-14">
+                {formatTime(w.started_at)}
               </td>
               <td className="py-2 px-2 w-10">
                 <SportIcon sport={w.sport} size={15} />

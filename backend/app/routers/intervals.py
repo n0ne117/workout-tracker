@@ -106,6 +106,35 @@ def _execute_import(api_key: str, athlete_id: str, oldest: str, newest: str):
                 streams = intervals_service.fetch_streams(api_key, act_id, dbg=dbg)
                 data = intervals_service.activity_to_workout_data(act, streams, api_key=api_key, dbg=dbg)
                 data["garmin_activity_id"] = ext_id
+
+                # Intervals.icu can hold several records for one physical
+                # activity, each with its own id — a re-upload from the watch,
+                # a re-sync, a re-processed copy. Matching on the external id
+                # alone imported every one of them as a separate workout, which
+                # is where the duplicate swims and rides came from: one 2015
+                # ride exists three times with identical start and duration but
+                # distances 19.3, 23.3 and 23.3 km.
+                #
+                # Two activities of the same sport cannot begin at the same
+                # instant, so that pair is a safe content-level identity. The
+                # first record imported wins; later variants are skipped rather
+                # than merged, so nothing already in the database is rewritten.
+                twin = idb.query(Workout).filter(
+                    Workout.started_at == data["started_at"],
+                    Workout.sport == data["sport"],
+                ).first()
+                if twin is not None:
+                    skipped += 1
+                    _import_status["done"] += 1
+                    if dbg is not None:
+                        dbg.append(
+                            f"  → skipped: duplicate of workout {twin.id} "
+                            f"({twin.garmin_activity_id}) — same start and sport"
+                        )
+                        _debug_log.extend(dbg)
+                        _debug_log.append("")
+                    continue
+
                 workout = Workout(**{k: v for k, v in data.items() if hasattr(Workout, k)})
                 idb.add(workout)
                 idb.commit()
