@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, X, Trophy, Filter } from 'lucide-react'
+import { Search, X, Trophy, Filter, CopyCheck } from 'lucide-react'
 import { formatSport } from '../utils/format'
 import SportIcon from './SportIcon'
 import { api } from '../hooks/useApi'
@@ -21,7 +21,7 @@ export default function FilterBar({ filters, onChange, collapseControl }) {
     onChange({ page: 1, pageSize: filters.pageSize })
   }
 
-  const hasFilters = filters.sport || filters.isRace || filters.search || filters.dateFrom || filters.dateTo
+  const hasFilters = filters.sport || filters.isRace || filters.search || filters.dateFrom || filters.dateTo || filters.duplicates
 
   return (
     <div className="space-y-3">
@@ -51,7 +51,7 @@ export default function FilterBar({ filters, onChange, collapseControl }) {
           <span className="hidden sm:inline">Filters</span>
           {hasFilters && (
             <span className="bg-white/30 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-              {[filters.sport, filters.isRace, filters.search, filters.dateFrom].filter(Boolean).length}
+              {[filters.sport, filters.isRace, filters.search, filters.dateFrom, filters.duplicates].filter(Boolean).length}
             </span>
           )}
         </button>
@@ -96,6 +96,59 @@ export default function FilterBar({ filters, onChange, collapseControl }) {
               ))}
             </div>
           </div>
+
+          {/* Suspected duplicates — the same rule the importer enforces:
+
+              another workout with the same start time and sport. */}
+
+          <div className="flex items-center gap-3 flex-wrap">
+
+            <label className="label mb-0">Suspected duplicates</label>
+
+            <button
+
+              onClick={() => filters.duplicates
+                  ? set('duplicates', undefined)
+                  // Hunting duplicates is a whole-history job, and the list
+                  // opens on the current month — which for most people holds
+                  // none of them, making the filter look broken. Clear the
+                  // range when switching it on.
+                  : onChange({ ...filters, duplicates: true, dateFrom: undefined, dateTo: undefined, page: 1 })}
+
+              className={clsx(
+
+                'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors',
+
+                filters.duplicates
+
+                  ? 'bg-red-500 text-white'
+
+                  : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+
+              )}
+
+            >
+
+              <CopyCheck size={12} />
+
+              Duplicates only
+
+            </button>
+
+            {filters.duplicates && (
+
+              <span className="text-xs text-gray-500 dark:text-gray-400 basis-full sm:basis-auto">
+
+                Activities sharing a start time and sport. Where they differ, keep the
+
+                one with a GPS track.
+
+              </span>
+
+            )}
+
+          </div>
+
 
           {/* Race filter */}
           <div className="flex items-center gap-3">

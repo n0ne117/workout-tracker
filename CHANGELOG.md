@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0
+
+### Added
+
+- **"Duplicates only" filter.** Shows every activity that shares a start time
+  and sport with another — the same rule the importer enforces, read from one
+  module so the filter and the guard cannot disagree. Switching it on clears
+  the date range, since the list opens on the current month and duplicates are
+  a whole-history hunt. Combines with the sport and date filters for working
+  through them in batches.
+
 ## 1.2.1
 
 ### Added

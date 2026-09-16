@@ -40,6 +40,7 @@ def list_workouts(
     search: Optional[str] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
+    duplicates: bool = Query(False, description="Only workouts sharing a start time and sport with another"),
     db: Session = Depends(get_db),
 ):
     # track_points is a multi-hundred-KB JSON blob per row and is stripped from
@@ -53,6 +54,9 @@ def list_workouts(
         query = query.filter(Workout.is_race == is_race)
     if search:
         query = query.filter(Workout.title.ilike(f"%{search}%"))
+    if duplicates:
+        from app.services.duplicates import shares_identity_clause
+        query = query.filter(shares_identity_clause())
     if date_from:
         query = query.filter(Workout.started_at >= date_from)
     if date_to:

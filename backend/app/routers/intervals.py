@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import Workout, AppSettings, WorkoutMetrics
 from app.services import intervals_service
 from app.cache import invalidate_stats_cache
+from app.services.duplicates import find_twin
 import logging
 
 router = APIRouter(prefix="/api/intervals", tags=["intervals"])
@@ -119,10 +120,7 @@ def _execute_import(api_key: str, athlete_id: str, oldest: str, newest: str):
                 # instant, so that pair is a safe content-level identity. The
                 # first record imported wins; later variants are skipped rather
                 # than merged, so nothing already in the database is rewritten.
-                twin = idb.query(Workout).filter(
-                    Workout.started_at == data["started_at"],
-                    Workout.sport == data["sport"],
-                ).first()
+                twin = find_twin(idb, data["started_at"], data["sport"])
                 if twin is not None:
                     skipped += 1
                     _import_status["done"] += 1

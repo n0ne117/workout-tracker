@@ -45,6 +45,7 @@ export function buildWorkoutQuery(params) {
   if (params.pageSize) q.set('page_size', params.pageSize)
   if (params.sport) q.set('sport', params.sport)
   if (params.isRace !== undefined && params.isRace !== null) q.set('is_race', params.isRace)
+  if (params.duplicates) q.set('duplicates', 'true')
   if (params.search) q.set('search', params.search)
   if (params.dateFrom) q.set('date_from', params.dateFrom)
   if (params.dateTo) q.set('date_to', params.dateTo)
