@@ -118,7 +118,7 @@ jobs:
             echo '```'
             echo ""
             echo "Single container: port **80**, data volume **/data**."
-            echo "See [Unraid setup](https://github.com/${{ github.repository }}#unraid) for the template."
+            echo "Unraid template: [unraid/workout-tracker.xml](https://github.com/${{ github.repository }}/blob/main/unraid/workout-tracker.xml)"
           } >> /tmp/notes.md
 
       - name: Create release

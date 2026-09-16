@@ -1,23 +1,15 @@
 services:
-  backend:
-    build: ./backend
-    restart: unless-stopped
-    volumes:
-      - ./workout_data:/data
-    environment:
-      - PYTHONUNBUFFERED=1
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  frontend:
-    build: ./frontend
+  workout-tracker:
+    image: ghcr.io/n0ne117/workout-tracker:latest
+    container_name: workout-tracker
     restart: unless-stopped
     ports:
       - "7733:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-
+    volumes:
+      # Holds workouts.db. Back this up; everything else is disposable.
+      - ./workout_data:/data
+    environment:
+      - TZ=Europe/Vienna
+      # Uncomment to run the API as a non-root user (Unraid: 99 / 100).
+      # - PUID=99
+      # - PGID=100
