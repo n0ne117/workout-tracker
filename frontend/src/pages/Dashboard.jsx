@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import WorkoutTable, { loadCollapsed, saveCollapsed, groupWorkouts, defaultCollapsed } from '../components/WorkoutTable'
 import FilterBar from '../components/FilterBar'
 import { api, buildWorkoutQuery } from '../hooks/useApi'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ListChecks } from 'lucide-react'
+import BulkActionBar from '../components/BulkActionBar'
+import clsx from 'clsx'
 
 const PAGE_SIZE = 500
 
@@ -23,6 +25,8 @@ export default function Dashboard() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
   const [collapsed, setCollapsed] = useState(loadCollapsed)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState(() => new Set())
 
   // Full reload whenever filters change (page resets to 1)
   const load = useCallback(async () => {
@@ -41,6 +45,15 @@ export default function Dashboard() {
   }, [filters])
 
   useEffect(() => { load() }, [load])
+
+  // Drop selections when the filters change: those ids are no longer on
+  // screen, and acting on rows you cannot see is how bulk tools go wrong.
+  useEffect(() => { setSelected(new Set()) }, [filters])
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelected(new Set())
+  }
 
   async function loadMore() {
     setLoadingMore(true)
@@ -104,13 +117,25 @@ export default function Dashboard() {
 
   const hasMore = workouts.length < total
 
-  const collapseControl = !loading && !searching && workouts.length > 0 ? (
-    <button
-      onClick={allCollapsed ? expandAll : collapseAll}
-      className="btn btn-secondary"
-    >
-      {allCollapsed ? 'Expand all' : 'Collapse all'}
-    </button>
+  const collapseControl = !loading && workouts.length > 0 ? (
+    <>
+      {!searching && (
+        <button
+          onClick={allCollapsed ? expandAll : collapseAll}
+          className="btn btn-secondary"
+        >
+          {allCollapsed ? 'Expand all' : 'Collapse all'}
+        </button>
+      )}
+      <button
+        onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+        className={clsx('btn gap-1.5', selectMode ? 'btn-primary' : 'btn-secondary')}
+        title="Select workouts for bulk actions"
+      >
+        <ListChecks size={15} />
+        <span className="hidden sm:inline">{selectMode ? 'Done' : 'Select'}</span>
+      </button>
+    </>
   ) : null
 
   return (
@@ -144,6 +169,17 @@ export default function Dashboard() {
           search={filters.search || ''}
           collapsed={collapsed}
           onToggle={toggle}
+          selectMode={selectMode}
+          selected={selected}
+          onSelectionChange={setSelected}
+        />
+      )}
+
+      {selectMode && (
+        <BulkActionBar
+          selected={selected}
+          onClear={() => setSelected(new Set())}
+          onChanged={() => { setSelected(new Set()); load() }}
         />
       )}
     </div>

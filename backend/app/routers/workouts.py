@@ -3,10 +3,13 @@ from sqlalchemy.orm import Session, load_only, defer
 from sqlalchemy import or_, and_, func
 from app.cache import get_stats_cache, set_stats_cache, invalidate_stats_cache
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models import Workout, WorkoutGear, GearItem, WorkoutMetrics, SPORT_CATEGORIES
-from app.schemas import WorkoutCreate, WorkoutUpdate, WorkoutResponse, WorkoutDetail, WorkoutListResponse, GearResponse, TrimRequest
+from app.schemas import (
+    WorkoutCreate, WorkoutUpdate, WorkoutResponse, WorkoutDetail,
+    WorkoutListResponse, GearResponse, TrimRequest, BulkIds, BulkUpdate,
+)
 
 router = APIRouter(prefix="/api/workouts", tags=["workouts"])
 
@@ -231,6 +234,99 @@ def get_stats(db: Session = Depends(get_db)):
     }
     set_stats_cache(result)
     return result
+
+
+# ── Bulk operations ───────────────────────────────────────────────────────────
+# Declared before the /{workout_id} routes on purpose: FastAPI matches in
+# definition order, so PATCH /bulk would otherwise be read as a workout id.
+
+MAX_BULK = 2000
+
+
+def _bulk_fetch(ids: List[int], db: Session) -> List[Workout]:
+    if not ids:
+        raise HTTPException(status_code=400, detail="No workouts selected")
+    if len(ids) > MAX_BULK:
+        raise HTTPException(status_code=400, detail=f"At most {MAX_BULK} workouts at a time")
+    return db.query(Workout).filter(Workout.id.in_(ids)).all()
+
+
+@router.patch("/bulk")
+def bulk_update(req: BulkUpdate, db: Session = Depends(get_db)):
+    """Apply one change to many workouts. Only fields that were sent are touched."""
+    found = _bulk_fetch(req.ids, db)
+    fields = req.model_dump(exclude_unset=True, exclude={"ids"})
+    if not fields:
+        raise HTTPException(status_code=400, detail="Nothing to change")
+
+    for workout in found:
+        for field, value in fields.items():
+            setattr(workout, field, value)
+    db.commit()
+    invalidate_stats_cache()
+    return {"ok": True, "updated": len(found), "changed": list(fields)}
+
+
+@router.post("/bulk/delete")
+def bulk_delete(req: BulkIds, db: Session = Depends(get_db)):
+    """Delete many workouts, and the gear links that would otherwise dangle."""
+    found = _bulk_fetch(req.ids, db)
+    found_ids = [w.id for w in found]
+    if found_ids:
+        db.query(WorkoutGear).filter(WorkoutGear.workout_id.in_(found_ids)).delete(
+            synchronize_session=False
+        )
+        db.query(Workout).filter(Workout.id.in_(found_ids)).delete(
+            synchronize_session=False
+        )
+        db.commit()
+        invalidate_stats_cache()
+    return {"ok": True, "deleted": len(found_ids)}
+
+
+@router.post("/bulk/export")
+def bulk_export(req: BulkIds, db: Session = Depends(get_db)):
+    """
+    Download the selected workouts as a zip.
+
+    Carries both a JSON record of everything stored and a .gpx per workout
+    that has a GPS track, so the archive is useful outside this app. It is an
+    export, not a restore point — /api/backup/restore replaces the whole
+    database, so feeding it a selection would delete everything else.
+    """
+    from app.routers.backup import _build_zip, _workout_to_dict
+    from app.services.gpx_export import workout_to_gpx
+
+    found = _bulk_fetch(req.ids, db)
+    if not found:
+        raise HTTPException(status_code=404, detail="None of those workouts exist")
+
+    found.sort(key=lambda w: (w.started_at or datetime.min))
+    payload = {
+        "manifest.json": {
+            "type": "selection",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "count": len(found),
+            "note": "Data export. Not a restore point — restore replaces the whole database.",
+        },
+        "workouts.json": [_workout_to_dict(w) for w in found],
+    }
+
+    used = set()
+    for workout in found:
+        gpx = workout_to_gpx(workout)
+        if gpx is None:
+            continue
+        # Titles repeat and may contain anything; the id keeps names unique.
+        stem = "".join(c if c.isalnum() or c in "-_" else "-" for c in (workout.title or "workout"))[:40]
+        name = f"gpx/{workout.id}-{stem or 'workout'}.gpx"
+        if name in used:
+            continue
+        used.add(name)
+        payload[name] = gpx
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return _build_zip(payload, f"workouts_selection_{stamp}.zip")
 
 
 @router.get("/{workout_id}", response_model=WorkoutDetail)

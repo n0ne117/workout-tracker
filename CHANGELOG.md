@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.4.0
+
+### Added
+
+- **Select workouts from the list, and act on them together.** A Select button
+  puts checkboxes on every row; an action bar then offers mark as race, remove
+  the race flag, download, and delete.
+  - Shift-click fills the range between two rows, and the header checkbox takes
+    everything currently on screen — collapsed months are deliberately excluded,
+    since sweeping up rows you cannot see is how bulk tools cause accidents.
+  - Changing a filter clears the selection, for the same reason.
+  - Delete asks first and names the count. It is the only irreversible action
+    here, and it removes gear links alongside the workouts so none are orphaned.
+  - On phones the checkbox appears on each card and tapping the card selects
+    rather than opening it.
+- **Download selected** produces a zip with `workouts.json` and a `.gpx` per
+  workout that has a GPS track — heart rate and cadence included in Garmin's
+  TrackPointExtension, so the tracks load into other tools. This is an export,
+  not a restore point: restoring replaces the entire database.
+- `PATCH /api/workouts/bulk`, `POST /api/workouts/bulk/delete` and
+  `POST /api/workouts/bulk/export`, capped at 2000 ids per call.
+
 ## 1.3.0
 
 ### Added

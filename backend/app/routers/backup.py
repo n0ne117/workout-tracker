@@ -116,7 +116,12 @@ def _build_zip(payload: dict, filename: str) -> StreamingResponse:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, data in payload.items():
-            zf.writestr(name, json.dumps(data, ensure_ascii=False, indent=2))
+            # Strings and bytes go in verbatim so callers can mix GPX or CSV
+            # members into an otherwise-JSON archive.
+            if isinstance(data, (str, bytes)):
+                zf.writestr(name, data)
+            else:
+                zf.writestr(name, json.dumps(data, ensure_ascii=False, indent=2))
     buf.seek(0)
     return StreamingResponse(
         buf,

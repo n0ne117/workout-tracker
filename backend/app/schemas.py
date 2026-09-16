@@ -192,3 +192,19 @@ class ChallengeResponse(ChallengeBase):
 class TrimRequest(BaseModel):
     start_index: int
     end_index: int
+
+
+class BulkIds(BaseModel):
+    """Selection of workouts a bulk action applies to."""
+    ids: List[int]
+
+
+class BulkUpdate(BulkIds):
+    """
+    Fields to apply across a selection.
+
+    exclude_unset on the caller side means omitting a field leaves it alone,
+    so sending is_race cannot accidentally blank out a sport.
+    """
+    is_race: Optional[bool] = None
+    sport: Optional[str] = None

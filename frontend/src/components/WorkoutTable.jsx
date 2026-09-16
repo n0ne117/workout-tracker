@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, ChevronDown, Trophy, Loader2, Activity } from 'lucide-react'
 import {
@@ -6,6 +6,9 @@ import {
 } from '../utils/format'
 import clsx from 'clsx'
 import SportIcon from './SportIcon'
+
+// Stable empty set so an unselected table doesn't allocate one per render.
+const EMPTY_SELECTION = new Set()
 
 const STORAGE_KEY = 'workout_table_collapsed'
 const STORAGE_VERSION = 2 // bump to clear stale state from old logic
@@ -144,13 +147,43 @@ function rateOrElevation(workout, opts) {
   )
 }
 
+/**
+ * Selection checkbox. Stops the click reaching the row link or the group
+ * toggle underneath it.
+ */
+function SelectBox({ checked, indeterminate = false, onChange, label }) {
+  return (
+    <input
+      type="checkbox"
+      aria-label={label}
+      checked={checked}
+      ref={el => { if (el) el.indeterminate = indeterminate && !checked }}
+      onClick={e => e.stopPropagation()}
+      onChange={e => { e.stopPropagation(); onChange(e) }}
+      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-brand-600
+                 focus:ring-brand-500 cursor-pointer accent-brand-600"
+    />
+  )
+}
+
 // ── Wide-screen presentation: dense table ────────────────────────────────────
 
-function TableView({ rows, onToggle, linkState }) {
+function TableView({ rows, onToggle, linkState, selection }) {
+  const { active, isSelected, toggleOne, visibleIds, allVisibleSelected, someVisibleSelected, selectAllVisible } = selection
   return (
     <table className="w-full">
       <thead>
         <tr className="border-b border-gray-200 dark:border-gray-700">
+          {active && (
+            <th className="py-2 pl-3 pr-1 w-9">
+              <SelectBox
+                label="Select all shown"
+                checked={allVisibleSelected}
+                indeterminate={someVisibleSelected}
+                onChange={() => selectAllVisible(!allVisibleSelected)}
+              />
+            </th>
+          )}
           <th className="py-2 px-3 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide w-20">Date</th>
           <th className="py-2 px-2 text-left text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide w-14">Time</th>
           <th className="py-2 px-2 w-10"></th>
@@ -177,7 +210,7 @@ function TableView({ rows, onToggle, linkState }) {
                     : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800',
                 )}
               >
-                <td colSpan={8} className={isYear ? 'py-2 px-3' : 'py-1.5 px-3'}>
+                <td colSpan={active ? 9 : 8} className={isYear ? 'py-2 px-3' : 'py-1.5 px-3'}>
                   <div className="flex items-center gap-2">
                     <Chevron size={isYear ? 14 : 13} className="text-gray-500 dark:text-gray-400" />
                     <span className={isYear
@@ -195,7 +228,21 @@ function TableView({ rows, onToggle, linkState }) {
           const w = row.workout
           const d = new Date(w.started_at)
           return (
-            <tr key={row.key} className="group border-t border-gray-100 dark:border-gray-800/60 hover:bg-brand-50/40 dark:hover:bg-brand-900/10 transition-colors">
+            <tr key={row.key} className={clsx(
+              'group border-t border-gray-100 dark:border-gray-800/60 transition-colors',
+              isSelected(w.id)
+                ? 'bg-brand-50 dark:bg-brand-900/20'
+                : 'hover:bg-brand-50/40 dark:hover:bg-brand-900/10',
+            )}>
+              {active && (
+                <td className="py-2 pl-3 pr-1 w-9">
+                  <SelectBox
+                    label={`Select ${w.title}`}
+                    checked={isSelected(w.id)}
+                    onChange={e => toggleOne(w.id, e.nativeEvent.shiftKey)}
+                  />
+                </td>
+              )}
               <td className="py-2 px-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap w-20">
                 {d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
               </td>
@@ -239,7 +286,8 @@ function TableView({ rows, onToggle, linkState }) {
 
 // ── Phone presentation: tappable cards, same groups ──────────────────────────
 
-function CardView({ rows, onToggle, linkState }) {
+function CardView({ rows, onToggle, linkState, selection }) {
+  const { active, isSelected, toggleOne } = selection
   return (
     <div className="divide-y divide-gray-100 dark:divide-gray-800">
       {rows.map(row => {
@@ -273,13 +321,31 @@ function CardView({ rows, onToggle, linkState }) {
           formatWorkoutRate(w, { compact: true }),
         ].filter(v => v && v !== '—')
 
+        // In selection mode the card toggles instead of navigating, so it
+        // must not be an anchor — tapping to select should not open the page.
+        const RowTag = active ? 'div' : Link
+        const rowProps = active
+          ? { onClick: () => toggleOne(w.id, false) }
+          : { to: `/workouts/${w.id}`, state: linkState }
+
         return (
-          <Link
+          <RowTag
             key={row.key}
-            to={`/workouts/${w.id}`}
-            state={linkState}
-            className="flex items-center gap-3 px-4 py-3 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+            {...rowProps}
+            className={clsx(
+              'flex items-center gap-3 px-4 py-3 transition-colors',
+              isSelected(w.id)
+                ? 'bg-brand-50 dark:bg-brand-900/20'
+                : 'active:bg-gray-50 dark:active:bg-gray-800',
+            )}
           >
+            {active && (
+              <SelectBox
+                label={`Select ${w.title}`}
+                checked={isSelected(w.id)}
+                onChange={() => toggleOne(w.id, false)}
+              />
+            )}
             <SportIcon sport={w.sport} size={17} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
@@ -300,7 +366,7 @@ function CardView({ rows, onToggle, linkState }) {
                 {formatTime(w.started_at)}
               </div>
             </div>
-          </Link>
+          </RowTag>
         )
       })}
     </div>
@@ -314,6 +380,9 @@ export default function WorkoutTable({
   workouts, loading, hasMore, loadingMore, onLoadMore, search = '', linkState,
   collapsed: collapsedProp,
   onToggle: onToggleProp,
+  selectMode = false,
+  selected,
+  onSelectionChange,
 }) {
   const [localCollapsed, setLocalCollapsed] = useState(loadCollapsed)
 
@@ -338,6 +407,50 @@ export default function WorkoutTable({
     [workouts, collapsed, searching],
   )
 
+  // Only rows currently on screen count as "visible" — a collapsed month must
+  // not be swept up by select-all.
+  const visibleIds = useMemo(
+    () => rows.filter(r => r.kind === 'workout').map(r => r.workout.id),
+    [rows],
+  )
+  const lastClicked = useRef(null)
+
+  const chosen = selected ?? EMPTY_SELECTION
+  const selectedVisible = visibleIds.filter(id => chosen.has(id)).length
+
+  const selection = {
+    active: selectMode,
+    isSelected: id => chosen.has(id),
+    visibleIds,
+    allVisibleSelected: visibleIds.length > 0 && selectedVisible === visibleIds.length,
+    someVisibleSelected: selectedVisible > 0,
+    selectAllVisible: wantAll => {
+      const next = new Set(chosen)
+      visibleIds.forEach(id => (wantAll ? next.add(id) : next.delete(id)))
+      onSelectionChange?.(next)
+    },
+    toggleOne: (id, extend) => {
+      const next = new Set(chosen)
+      // Shift-click fills the range from the previous click, which is what
+      // makes working through a long run of duplicates bearable.
+      if (extend && lastClicked.current != null) {
+        const from = visibleIds.indexOf(lastClicked.current)
+        const to = visibleIds.indexOf(id)
+        if (from !== -1 && to !== -1) {
+          const [lo, hi] = from < to ? [from, to] : [to, from]
+          const turningOn = !chosen.has(id)
+          visibleIds.slice(lo, hi + 1).forEach(x => (turningOn ? next.add(x) : next.delete(x)))
+          lastClicked.current = id
+          onSelectionChange?.(next)
+          return
+        }
+      }
+      next.has(id) ? next.delete(id) : next.add(id)
+      lastClicked.current = id
+      onSelectionChange?.(next)
+    },
+  }
+
   if (loading) return null
 
   if (!workouts.length) {
@@ -353,10 +466,10 @@ export default function WorkoutTable({
   return (
     <div className="card overflow-hidden">
       <div className="hidden md:block">
-        <TableView rows={rows} onToggle={toggle} linkState={linkState} />
+        <TableView rows={rows} onToggle={toggle} linkState={linkState} selection={selection} />
       </div>
       <div className="md:hidden">
-        <CardView rows={rows} onToggle={toggle} linkState={linkState} />
+        <CardView rows={rows} onToggle={toggle} linkState={linkState} selection={selection} />
       </div>
 
       {hasMore && (
