@@ -7,6 +7,7 @@ import {
   FileWarning, FilePlus2
 } from 'lucide-react'
 import { formatDatetime } from '../utils/format'
+import clsx from 'clsx'
 
 export default function Settings() {
   return (
@@ -21,6 +22,9 @@ export default function Settings() {
 
       {/* Intervals.icu */}
       <IntervalsSection />
+
+      {/* Automatic sync */}
+      <SyncScheduleSection />
 
       {/* Danger Zone */}
       <DangerZone />
@@ -398,6 +402,140 @@ function DangerZone() {
           {msg.text}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Scheduled sync ────────────────────────────────────────────────────────────
+
+const INTERVAL_CHOICES = [
+  { minutes: 15,   label: '15 min' },
+  { minutes: 30,   label: '30 min' },
+  { minutes: 60,   label: 'Hourly' },
+  { minutes: 180,  label: '3 hours' },
+  { minutes: 360,  label: '6 hours' },
+  { minutes: 1440, label: 'Daily' },
+]
+
+function SyncScheduleSection() {
+  const [schedule, setSchedule] = useState(null)
+  const [saving, setSaving]     = useState(false)
+  const [connected, setConnected] = useState(true)
+
+  async function load() {
+    try {
+      const s = await api.get('/intervals/status')
+      setSchedule(s.schedule)
+      setConnected(s.connected)
+    } catch { /* section simply stays hidden */ }
+  }
+  useEffect(() => { load() }, [])
+
+  async function save(patch) {
+    setSaving(true)
+    try {
+      const r = await api.patch('/intervals/schedule', patch)
+      setSchedule(prev => ({ ...prev, enabled: r.enabled, interval_minutes: r.interval_minutes, days_back: r.days_back }))
+    } catch { /* leave the previous value visible */ }
+    finally { setSaving(false) }
+  }
+
+  if (!schedule) return null
+
+  const last = schedule.last_sync_at ? new Date(schedule.last_sync_at) : null
+  const next = last && schedule.enabled
+    ? new Date(last.getTime() + schedule.interval_minutes * 60_000)
+    : null
+
+  return (
+    <div className="card p-6 space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Automatic sync</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Pulls new Intervals.icu activities on a schedule, without opening the app.
+          </p>
+        </div>
+        <button
+          onClick={() => save({ enabled: !schedule.enabled })}
+          disabled={saving}
+          role="switch"
+          aria-checked={schedule.enabled}
+          aria-label="Automatic sync"
+          className={clsx(
+            'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors',
+            schedule.enabled ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-700',
+          )}
+        >
+          <span className={clsx(
+            'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform',
+            schedule.enabled ? 'translate-x-6' : 'translate-x-1',
+          )} />
+        </button>
+      </div>
+
+      {!connected && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          No API key stored yet — the schedule stays idle until Intervals.icu is connected above.
+        </p>
+      )}
+
+      <div className={clsx('space-y-4', !schedule.enabled && 'opacity-50 pointer-events-none')}>
+        <div>
+          <label className="label">How often</label>
+          <div className="flex flex-wrap gap-1.5">
+            {INTERVAL_CHOICES.map(c => (
+              <button
+                key={c.minutes}
+                onClick={() => save({ interval_minutes: c.minutes })}
+                disabled={saving}
+                className={clsx(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                  schedule.interval_minutes === c.minutes
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700',
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="label">Each run looks back</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              className="input w-24"
+              min={1} max={365}
+              value={schedule.days_back}
+              onChange={e => setSchedule(s => ({ ...s, days_back: parseInt(e.target.value) || 1 }))}
+              onBlur={e => save({ days_back: parseInt(e.target.value) || 30 })}
+            />
+            <span className="text-sm text-gray-500 dark:text-gray-400">days</span>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            Already-imported activities are skipped, so a wider window costs little.
+          </p>
+        </div>
+      </div>
+
+      <div className="text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-3 space-y-0.5">
+        <p>
+          Last run:{' '}
+          {last
+            ? <>{formatDatetime(schedule.last_sync_at)}
+                {schedule.last_sync_result && (
+                  schedule.last_sync_result.error
+                    ? <span className="text-red-500"> — {schedule.last_sync_result.error}</span>
+                    : <span> — {schedule.last_sync_result.imported} new, {schedule.last_sync_result.skipped} already there</span>
+                )}
+              </>
+            : 'never'}
+        </p>
+        {next && <p>Next run: around {formatDatetime(next.toISOString())}</p>}
+      </div>
     </div>
   )
 }

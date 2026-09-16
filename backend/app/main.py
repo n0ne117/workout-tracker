@@ -1,7 +1,8 @@
+import asyncio
 import math
 import json
 import os
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
 
@@ -32,10 +33,18 @@ async def lifespan(app: FastAPI):
     # on_event("startup") is deprecated in FastAPI 0.115.
     init_db()
     _seed_challenges()
-    yield
+
+    from app.services import sync_scheduler
+    scheduler = asyncio.create_task(sync_scheduler.run())
+    try:
+        yield
+    finally:
+        scheduler.cancel()
+        with suppress(asyncio.CancelledError):
+            await scheduler
 
 
-app = FastAPI(title="Workout Tracker", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="Workout Tracker", version="1.2.0", lifespan=lifespan)
 app.router.default_response_class = JSONResponse
 
 # Monkey-patch starlette's JSON serialisation to tolerate inf/nan
@@ -104,9 +113,12 @@ def _seed_challenges():
     try:
         if db.query(ChallengeItem).count() > 0:
             return
+        # Ignore keys the model no longer has, so a seed file written by an
+        # older version (which carried cost_eur) still loads.
+        known = {c.name for c in ChallengeItem.__table__.columns}
         items = [
             ChallengeItem(**{
-                **row,
+                **{k: v for k, v in row.items() if k in known},
                 **{k: parse_date(row.get(k))
                    for k in ("purchase_date", "use_before", "start_date", "end_date")},
             })

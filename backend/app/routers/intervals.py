@@ -38,6 +38,127 @@ def _get_or_create_settings(db: Session) -> AppSettings:
     return s
 
 
+def _execute_import(api_key: str, athlete_id: str, oldest: str, newest: str):
+    """
+    Run one import to completion. Blocking — call it on a worker thread.
+
+    Lives at module level so the Sync button and the scheduler drive the
+    exact same code path; they used to be separate and could drift.
+    """
+    global _debug_log
+    _debug_log = [
+        f"Import started: {datetime.now(timezone.utc).isoformat()}",
+        f"Athlete ID: {athlete_id}  |  Range: {oldest} → {newest}",
+        "",
+    ]
+    _import_status["running"] = True
+    _import_status["cancel"] = False
+    _import_status["total"] = 0
+    _import_status["done"] = 0
+    imported = skipped = errors = 0
+    try:
+        activities = intervals_service.fetch_activities(
+            api_key, athlete_id, oldest, newest
+        )
+        _import_status["total"] = len(activities)
+        _debug_log.append(f"Fetched {len(activities)} activities from intervals.icu")
+
+        # Resolve real athlete ID from the first activity — "0" is only valid
+        # for the activities list endpoint, not for the streams endpoint.
+        resolved_athlete_id = athlete_id
+        if activities:
+            real_id = str(activities[0].get("athlete_id", "")).strip()
+            if real_id and real_id != "0":
+                resolved_athlete_id = real_id
+                _debug_log.append(f"Resolved athlete ID: {athlete_id!r} → {resolved_athlete_id!r}")
+            else:
+                _debug_log.append(f"Could not resolve athlete ID from activities (got {real_id!r}), keeping {athlete_id!r}")
+        _debug_log.append("")
+
+        from app.database import SessionLocal
+        idb = SessionLocal()
+        detail_count = 0
+        for act in activities:
+            if _import_status["cancel"]:
+                logger.info("Intervals import cancelled by user")
+                break
+            act_id = str(act.get("id", ""))
+            if not act_id:
+                continue
+            ext_id = f"icu_{act_id}"
+            existing = idb.query(Workout).filter(
+                Workout.garmin_activity_id == ext_id
+            ).first()
+            if existing:
+                skipped += 1
+                _import_status["done"] += 1
+                continue
+
+            # Collect debug info for the first N new activities
+            dbg = [] if detail_count < _DEBUG_DETAIL_LIMIT else None
+            if dbg is not None:
+                detail_count += 1
+                act_name = act.get("name") or act.get("type") or act_id
+                act_date = act.get("start_date_local", "")[:10]
+                _debug_log.append(f"[{_import_status['done']+1}] {act_date} '{act_name}' (id={act_id})")
+
+            try:
+                streams = intervals_service.fetch_streams(api_key, act_id, dbg=dbg)
+                data = intervals_service.activity_to_workout_data(act, streams, api_key=api_key, dbg=dbg)
+                data["garmin_activity_id"] = ext_id
+                workout = Workout(**{k: v for k, v in data.items() if hasattr(Workout, k)})
+                idb.add(workout)
+                idb.commit()
+                imported += 1
+            except Exception as e:
+                logger.error(f"Error importing intervals activity {act_id}: {e}")
+                if dbg is not None:
+                    dbg.append(f"  → EXCEPTION: {e}")
+                idb.rollback()
+                errors += 1
+                continue
+
+            # Persist metrics — best-effort: never rolls back a committed workout
+            try:
+                metrics = data.get("metrics", {})
+                if any(v is not None for v in metrics.values()):
+                    m = WorkoutMetrics(workout_id=workout.id, **metrics)
+                    idb.merge(m)
+                    idb.commit()
+                logger.debug(f"Metrics for {act_id}: {metrics}")
+            except Exception as me:
+                logger.warning(f"Could not save metrics for {act_id}: {me}")
+                idb.rollback()
+
+            if dbg:
+                _debug_log.extend(dbg)
+                _debug_log.append("")
+            _import_status["done"] += 1
+        idb.close()
+        cancelled = _import_status["cancel"]
+        _debug_log.append(f"--- Done: imported={imported} skipped={skipped} errors={errors}" +
+                          (" CANCELLED" if cancelled else ""))
+        _import_status["last_result"] = {
+            "imported": imported,
+            "skipped": skipped,
+            "errors": errors,
+            "error": "Cancelled by user" if cancelled else None,
+        }
+    except Exception as e:
+        logger.error(f"Intervals import failed: {e}")
+        _debug_log.append(f"--- FATAL: {e}")
+        _import_status["last_result"] = {
+            "imported": imported,
+            "skipped": skipped,
+            "errors": errors,
+            "error": str(e),
+        }
+    finally:
+        _import_status["running"] = False
+        _import_status["cancel"] = False
+        invalidate_stats_cache()
+
+
 @router.get("/status")
 def get_status(db: Session = Depends(get_db)):
     s = _get_or_create_settings(db)
@@ -46,6 +167,39 @@ def get_status(db: Session = Depends(get_db)):
         "athlete_id": getattr(s, "intervals_athlete_id", "0") or "0",
         "import_running": _import_status["running"],
         "last_result": _import_status["last_result"],
+        "schedule": {
+            "enabled": bool(getattr(s, "sync_enabled", True)),
+            "interval_minutes": getattr(s, "sync_interval_minutes", None) or 60,
+            "days_back": getattr(s, "sync_days_back", None) or 30,
+            "last_sync_at": s.last_sync_at.isoformat() if getattr(s, "last_sync_at", None) else None,
+            "last_sync_result": getattr(s, "last_sync_result", None),
+        },
+    }
+
+
+class ScheduleUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    interval_minutes: Optional[int] = None
+    days_back: Optional[int] = None
+
+
+@router.patch("/schedule")
+def update_schedule(update: ScheduleUpdate, db: Session = Depends(get_db)):
+    """Change the automatic sync schedule. Takes effect on the next tick."""
+    s = _get_or_create_settings(db)
+    if update.enabled is not None:
+        s.sync_enabled = update.enabled
+    if update.interval_minutes is not None:
+        # Below five minutes an import cannot finish before the next is due.
+        s.sync_interval_minutes = max(5, min(update.interval_minutes, 60 * 24 * 7))
+    if update.days_back is not None:
+        s.sync_days_back = max(1, min(update.days_back, 365))
+    db.commit()
+    return {
+        "ok": True,
+        "enabled": bool(s.sync_enabled),
+        "interval_minutes": s.sync_interval_minutes,
+        "days_back": s.sync_days_back,
     }
 
 
@@ -78,121 +232,7 @@ def import_from_intervals(
     oldest = start_date.strftime("%Y-%m-%d")
     newest = end_date.strftime("%Y-%m-%d")
 
-    def run_import():
-        global _debug_log
-        _debug_log = [
-            f"Import started: {datetime.now(timezone.utc).isoformat()}",
-            f"Athlete ID: {athlete_id}  |  Range: {oldest} → {newest}",
-            "",
-        ]
-        _import_status["running"] = True
-        _import_status["cancel"] = False
-        _import_status["total"] = 0
-        _import_status["done"] = 0
-        imported = skipped = errors = 0
-        try:
-            activities = intervals_service.fetch_activities(
-                api_key, athlete_id, oldest, newest
-            )
-            _import_status["total"] = len(activities)
-            _debug_log.append(f"Fetched {len(activities)} activities from intervals.icu")
-
-            # Resolve real athlete ID from the first activity — "0" is only valid
-            # for the activities list endpoint, not for the streams endpoint.
-            resolved_athlete_id = athlete_id
-            if activities:
-                real_id = str(activities[0].get("athlete_id", "")).strip()
-                if real_id and real_id != "0":
-                    resolved_athlete_id = real_id
-                    _debug_log.append(f"Resolved athlete ID: {athlete_id!r} → {resolved_athlete_id!r}")
-                else:
-                    _debug_log.append(f"Could not resolve athlete ID from activities (got {real_id!r}), keeping {athlete_id!r}")
-            _debug_log.append("")
-
-            from app.database import SessionLocal
-            idb = SessionLocal()
-            detail_count = 0
-            for act in activities:
-                if _import_status["cancel"]:
-                    logger.info("Intervals import cancelled by user")
-                    break
-                act_id = str(act.get("id", ""))
-                if not act_id:
-                    continue
-                ext_id = f"icu_{act_id}"
-                existing = idb.query(Workout).filter(
-                    Workout.garmin_activity_id == ext_id
-                ).first()
-                if existing:
-                    skipped += 1
-                    _import_status["done"] += 1
-                    continue
-
-                # Collect debug info for the first N new activities
-                dbg = [] if detail_count < _DEBUG_DETAIL_LIMIT else None
-                if dbg is not None:
-                    detail_count += 1
-                    act_name = act.get("name") or act.get("type") or act_id
-                    act_date = act.get("start_date_local", "")[:10]
-                    _debug_log.append(f"[{_import_status['done']+1}] {act_date} '{act_name}' (id={act_id})")
-
-                try:
-                    streams = intervals_service.fetch_streams(api_key, act_id, dbg=dbg)
-                    data = intervals_service.activity_to_workout_data(act, streams, api_key=api_key, dbg=dbg)
-                    data["garmin_activity_id"] = ext_id
-                    workout = Workout(**{k: v for k, v in data.items() if hasattr(Workout, k)})
-                    idb.add(workout)
-                    idb.commit()
-                    imported += 1
-                except Exception as e:
-                    logger.error(f"Error importing intervals activity {act_id}: {e}")
-                    if dbg is not None:
-                        dbg.append(f"  → EXCEPTION: {e}")
-                    idb.rollback()
-                    errors += 1
-                    continue
-
-                # Persist metrics — best-effort: never rolls back a committed workout
-                try:
-                    metrics = data.get("metrics", {})
-                    if any(v is not None for v in metrics.values()):
-                        m = WorkoutMetrics(workout_id=workout.id, **metrics)
-                        idb.merge(m)
-                        idb.commit()
-                    logger.debug(f"Metrics for {act_id}: {metrics}")
-                except Exception as me:
-                    logger.warning(f"Could not save metrics for {act_id}: {me}")
-                    idb.rollback()
-
-                if dbg:
-                    _debug_log.extend(dbg)
-                    _debug_log.append("")
-                _import_status["done"] += 1
-            idb.close()
-            cancelled = _import_status["cancel"]
-            _debug_log.append(f"--- Done: imported={imported} skipped={skipped} errors={errors}" +
-                              (" CANCELLED" if cancelled else ""))
-            _import_status["last_result"] = {
-                "imported": imported,
-                "skipped": skipped,
-                "errors": errors,
-                "error": "Cancelled by user" if cancelled else None,
-            }
-        except Exception as e:
-            logger.error(f"Intervals import failed: {e}")
-            _debug_log.append(f"--- FATAL: {e}")
-            _import_status["last_result"] = {
-                "imported": imported,
-                "skipped": skipped,
-                "errors": errors,
-                "error": str(e),
-            }
-        finally:
-            _import_status["running"] = False
-            _import_status["cancel"] = False
-            invalidate_stats_cache()
-
-    background_tasks.add_task(run_import)
+    background_tasks.add_task(_execute_import, api_key, athlete_id, oldest, newest)
     return {
         "ok": True,
         "message": f"Importing last {req.days_back} days from intervals.icu in background",

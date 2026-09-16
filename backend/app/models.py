@@ -126,7 +126,6 @@ class ChallengeItem(Base):
     distance_km = Column(Integer, nullable=False)
     purchase_date = Column(DateTime, nullable=True)
     use_before = Column(DateTime, nullable=True)   # expiry for unstarted challenges
-    cost_eur = Column(Float, nullable=True)
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
     year = Column(Integer, nullable=True)           # Jahr — attributed year
@@ -161,4 +160,10 @@ class AppSettings(Base):
     runlab_target_distances = Column(JSON, nullable=True)   # default ['5k']
     runlab_hr_max           = Column(Integer, nullable=True)
     runlab_hr_lthr          = Column(Integer, nullable=True)
+    # ── Scheduled Intervals.icu sync ──────────────────────────────────────────
+    sync_enabled          = Column(Boolean, default=True)
+    sync_interval_minutes = Column(Integer, default=60)
+    sync_days_back        = Column(Integer, default=30)
+    last_sync_at          = Column(DateTime, nullable=True)
+    last_sync_result      = Column(JSON, nullable=True)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

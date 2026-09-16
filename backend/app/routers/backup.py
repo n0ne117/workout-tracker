@@ -103,7 +103,6 @@ def _challenge_to_dict(c: ChallengeItem) -> dict:
         "distance_km": c.distance_km,
         "purchase_date": _dt(c.purchase_date),
         "use_before": _dt(c.use_before),
-        "cost_eur": c.cost_eur,
         "start_date": _dt(c.start_date),
         "end_date": _dt(c.end_date),
         "year": c.year,

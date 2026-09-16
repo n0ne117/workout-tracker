@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+
+- **Scheduled Intervals.icu sync.** A background task pulls new activities on
+  its own, hourly by default. Configure it under Settings → Automatic sync:
+  on/off, interval (15 min to daily), and how far back each run looks.
+  The scheduler wakes once a minute and asks whether a run is due rather than
+  sleeping for the whole interval, so a changed setting takes effect at once
+  and a restart doesn't lose the schedule — the last-run time lives in the
+  database. Intervals below 5 minutes are refused: an import takes longer
+  than that, so they would only overlap.
+- `PATCH /api/intervals/schedule`; the existing status endpoint now reports
+  the schedule and the last run's outcome.
+
+### Fixed
+
+- **The workout list claimed every activity had a GPS track.** A workout
+  without one stores JSON `null`, which SQLite holds as the 4-character text
+  `"null"` — the length check used to resolve `has_track` counted that as a
+  track, so the list disagreed with the detail view on 380 of 1,664
+  activities. It now asks `json_type()` instead.
+
+### Changed
+
+- The Sync button and the scheduler share one code path, so they cannot drift
+- Challenge prices (`cost_eur`) dropped from the schema — they were never
+  shown in the UI. Existing databases lose the column on upgrade; a seed file
+  that still carries it loads fine, the field is simply ignored
+
 ## 1.1.0
 
 First published release. The mobile and desktop interfaces are now one

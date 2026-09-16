@@ -70,6 +70,10 @@ def list_workouts(
     with_track = {
         row[0] for row in db.query(Workout.id)
         .filter(Workout.id.in_([w.id for w in workouts]))
+        # A workout with no GPS stores JSON null, which SQLite holds as the
+        # 4-character text "null" — length() alone counted that as a track and
+        # disagreed with the detail endpoint. json_type() separates them.
+        .filter(func.json_type(Workout.track_points) == "array")
         .filter(func.length(Workout.track_points) > 2)
         .all()
     } if workouts else set()

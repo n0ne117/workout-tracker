@@ -160,7 +160,6 @@ class ChallengeBase(BaseModel):
     distance_km: int
     purchase_date: Optional[datetime] = None
     use_before: Optional[datetime] = None
-    cost_eur: Optional[float] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     year: Optional[int] = None
@@ -176,7 +175,6 @@ class ChallengeUpdate(BaseModel):
     distance_km: Optional[int] = None
     purchase_date: Optional[datetime] = None
     use_before: Optional[datetime] = None
-    cost_eur: Optional[float] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     year: Optional[int] = None
