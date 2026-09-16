@@ -1,0 +1,12 @@
+# Development overlay: builds from source instead of pulling.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# Everything else — ports, data path, PUID/PGID — still comes from
+# docker-compose.yml and .env, so there is only one place to configure them.
+
+services:
+  workout-tracker:
+    build: .
+    image: workout-tracker:dev
+    pull_policy: never

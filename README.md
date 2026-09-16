@@ -7,17 +7,17 @@ races and training load. One container, responsive UI.
 ```yaml
 services:
   workout-tracker:
-    image: ghcr.io/n0ne117/workout-tracker:latest
+    image: ghcr.io/n0ne117/workout-tracker:${WORKOUTS_IMAGE_TAG:-latest}
     container_name: workout-tracker
     restart: unless-stopped
     ports:
-      - "7733:80"
+      - "${WORKOUTS_PORT:-7733}:80"
     volumes:
-      - ./workout_data:/data
+      - ${WORKOUTS_DATA_HOST:-./workout_data}:/data:z
     environment:
-      - TZ=Europe/Vienna
-      # - PUID=99
-      # - PGID=100
+      TZ: ${TZ:-UTC}
+      PUID: ${PUID:-}
+      PGID: ${PGID:-}
 ```
 
 ```bash
@@ -25,4 +25,8 @@ docker compose up -d
 ```
 
 Then <http://localhost:7733>. The database lives in `./workout_data` — back
-that up, ignore the rest. Have fun.
+that up, ignore the rest.
+
+Everything above has a default, so no configuration is required. To change a
+port or move the data, copy `.env.example` to `.env` and edit that instead of
+this file. Have fun.
