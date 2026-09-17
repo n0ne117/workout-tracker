@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.1
+
+### Added
+
+- **GPS marker in the workout list.** A small pin beside the title on any
+  activity carrying a track. Not decoration — 380 of 1,664 activities have no
+  track at all, and legitimately so: every indoor session, most pool swims,
+  anything logged without a watch. It also settles which row to keep when
+  clearing duplicates, since the re-imported copy usually arrives without its
+  track. Of the 157 rows in the duplicates view, 75 have a track and 82 do not.
+
 ## 1.4.0
 
 ### Added

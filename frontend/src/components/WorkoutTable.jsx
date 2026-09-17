@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, ChevronDown, Trophy, Loader2, Activity } from 'lucide-react'
+import { ChevronRight, ChevronDown, Trophy, Loader2, Activity, MapPin } from 'lucide-react'
 import {
   formatDuration, formatDistance, formatWorkoutRate, formatTime, movingSeconds,
 } from '../utils/format'
@@ -148,6 +148,24 @@ function rateOrElevation(workout, opts) {
 }
 
 /**
+ * Marks a workout that carries a GPS track.
+ *
+ * Not decoration: plenty of real activities have none — every indoor session,
+ * most pool swims, and anything logged without a watch. It is also the tell
+ * that separates a duplicate import from the original, since the re-imported
+ * copy usually arrives without its track.
+ */
+function GpsBadge({ className = '' }) {
+  return (
+    <MapPin
+      size={11}
+      aria-label="Has GPS track"
+      className={'text-emerald-500 flex-shrink-0 ' + className}
+    />
+  )
+}
+
+/**
  * Selection checkbox. Stops the click reaching the row link or the group
  * toggle underneath it.
  */
@@ -262,6 +280,7 @@ function TableView({ rows, onToggle, linkState, selection }) {
                     {w.title}
                   </Link>
                   {w.is_race && <Trophy size={11} className="text-yellow-500 flex-shrink-0" />}
+                  {w.has_track && <GpsBadge />}
                 </div>
               </td>
               <td className="py-2 px-3 text-xs text-right tabular-nums text-gray-600 dark:text-gray-400 whitespace-nowrap">
@@ -353,6 +372,7 @@ function CardView({ rows, onToggle, linkState, selection }) {
                   {w.title}
                 </span>
                 {w.is_race && <Trophy size={12} className="text-yellow-500 flex-shrink-0" />}
+                {w.has_track && <GpsBadge />}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {meta.join(' · ')}
