@@ -414,7 +414,12 @@ export default function WorkoutTable({
       onToggleProp?.(key)
     } else {
       setLocalCollapsed(prev => {
-        const next = { ...prev, [key]: !prev[key] }
+      // Flip what is actually on screen, not what happens to be stored.
+      // Groups with no stored entry take their state from defaultCollapsed(),
+      // so `!prev[key]` wrote "collapsed" onto something already displaying as
+      // collapsed — the first click did nothing and expanding took two.
+        const shown = prev[key] ?? defaultCollapsed(key)
+        const next = { ...prev, [key]: !shown }
         saveCollapsed(next)
         return next
       })

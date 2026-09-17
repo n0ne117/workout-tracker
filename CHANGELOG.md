@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.2
+
+### Fixed
+
+- **Expanding a collapsed year or month took two clicks.** The displayed state
+  falls back to a default when nothing is stored, but the toggle flipped the
+  *stored* value — so for a group with no entry yet, the first click wrote
+  "collapsed" onto something already showing as collapsed and nothing moved.
+  Only the second click expanded it. Collapsing was unaffected, which is why it
+  looked like a double-click was needed one way but not the other. The toggle
+  now flips what is actually on screen.
+
 ## 1.4.1
 
 ### Added
