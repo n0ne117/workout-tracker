@@ -15,6 +15,8 @@ import math
 from datetime import datetime, timezone
 from typing import Optional
 
+from app.services.timeutil import to_local, now_local
+
 
 logger = logging.getLogger(__name__)
 
@@ -442,9 +444,11 @@ def activity_to_workout_data(act: dict, streams: Optional[dict],
     """Convert a raw intervals.icu activity + streams to our internal workout dict."""
     sport = _map_sport(act.get("type") or act.get("sport_type") or "")
 
-    started_at = _parse_dt(act.get("start_date_local") or act.get("start_date"))
+    # Stored as local wall-clock time (see services/timeutil.py).
+    local = _parse_dt(act.get("start_date_local"))
+    started_at = local.replace(tzinfo=None) if local else to_local(_parse_dt(act.get("start_date")))
     if not started_at:
-        started_at = datetime.now(timezone.utc)
+        started_at = now_local()
 
     distance    = act.get("distance")            # meters
     duration    = act.get("elapsed_time") or act.get("elapsed_time_raw")

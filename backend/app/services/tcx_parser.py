@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from typing import Optional
 import math
 
+from app.services.timeutil import to_local, now_local
+
 NS = {
     "tcx": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2",
     "ax": "http://www.garmin.com/xmlschemas/ActivityExtension/v2",
@@ -192,6 +194,7 @@ def parse_tcx(content: bytes) -> dict:
 
     avg_hr = int(sum(hr_values) / len(hr_values)) if hr_values else None
 
+    started_at = to_local(started_at)
     title = f"{sport.replace('_', ' ').title()} Activity"
     if started_at:
         title = f"{sport.replace('_', ' ').title()} – {started_at.strftime('%b %d, %Y')}"
@@ -199,7 +202,7 @@ def parse_tcx(content: bytes) -> dict:
     return {
         "title": title,
         "sport": sport,
-        "started_at": started_at or datetime.now(timezone.utc),
+        "started_at": started_at or now_local(),
         "duration_seconds": int(total_time) if total_time else None,
         "distance_meters": total_distance if total_distance > 0 else None,
         "elevation_gain_meters": elevation_gain if elevation_gain > 0 else None,

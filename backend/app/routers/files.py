@@ -7,6 +7,7 @@ from app.services.gpx_parser import parse_gpx
 from app.services.fit_parser import parse_fit
 from app.services.tcx_parser import parse_tcx
 from app.services.kml_parser import parse_kml, parse_kmz
+from app.services.duplicates import find_twin
 from app.cache import invalidate_stats_cache
 
 router = APIRouter(prefix="/api/import", tags=["import"])
@@ -27,6 +28,26 @@ def _guess_sport_from_filename(filename: str) -> str:
     return "other"
 
 
+def _store(db: Session, data: dict, source: str, filename: str) -> WorkoutResponse:
+    """Insert a parsed file, refusing one already stored under the same identity."""
+    twin = find_twin(db, data["started_at"], data["sport"])
+    if twin is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Already imported: \"{twin.title}\" has the same start time and sport",
+        )
+    workout = Workout(
+        **{k: v for k, v in data.items() if hasattr(Workout, k)},
+        source=source,
+        original_filename=filename,
+    )
+    db.add(workout)
+    db.commit()
+    invalidate_stats_cache()
+    db.refresh(workout)
+    return WorkoutResponse.from_orm_with_track_flag(workout)
+
+
 @router.post("/gpx", response_model=WorkoutResponse)
 async def import_gpx(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename.lower().endswith(".gpx"):
@@ -40,16 +61,7 @@ async def import_gpx(file: UploadFile = File(...), db: Session = Depends(get_db)
     if not data.get("sport"):
         data["sport"] = _guess_sport_from_filename(file.filename)
 
-    workout = Workout(
-        **{k: v for k, v in data.items() if hasattr(Workout, k)},
-        source="gpx_file",
-        original_filename=file.filename,
-    )
-    db.add(workout)
-    db.commit()
-    invalidate_stats_cache()
-    db.refresh(workout)
-    return WorkoutResponse.from_orm_with_track_flag(workout)
+    return _store(db, data, "gpx_file", file.filename)
 
 
 @router.post("/fit", response_model=WorkoutResponse)
@@ -62,16 +74,7 @@ async def import_fit(file: UploadFile = File(...), db: Session = Depends(get_db)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Could not parse FIT: {e}")
 
-    workout = Workout(
-        **{k: v for k, v in data.items() if hasattr(Workout, k)},
-        source="fit_file",
-        original_filename=file.filename,
-    )
-    db.add(workout)
-    db.commit()
-    invalidate_stats_cache()
-    db.refresh(workout)
-    return WorkoutResponse.from_orm_with_track_flag(workout)
+    return _store(db, data, "fit_file", file.filename)
 
 
 @router.post("/tcx", response_model=WorkoutResponse)
@@ -84,16 +87,7 @@ async def import_tcx(file: UploadFile = File(...), db: Session = Depends(get_db)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Could not parse TCX: {e}")
 
-    workout = Workout(
-        **{k: v for k, v in data.items() if hasattr(Workout, k)},
-        source="tcx_file",
-        original_filename=file.filename,
-    )
-    db.add(workout)
-    db.commit()
-    invalidate_stats_cache()
-    db.refresh(workout)
-    return WorkoutResponse.from_orm_with_track_flag(workout)
+    return _store(db, data, "tcx_file", file.filename)
 
 
 @router.post("/kml", response_model=WorkoutResponse)
@@ -110,16 +104,7 @@ async def import_kml(file: UploadFile = File(...), db: Session = Depends(get_db)
     if not data.get("sport"):
         data["sport"] = _guess_sport_from_filename(file.filename)
 
-    workout = Workout(
-        **{k: v for k, v in data.items() if hasattr(Workout, k)},
-        source="kml_file",
-        original_filename=file.filename,
-    )
-    db.add(workout)
-    db.commit()
-    invalidate_stats_cache()
-    db.refresh(workout)
-    return WorkoutResponse.from_orm_with_track_flag(workout)
+    return _store(db, data, "kml_file", file.filename)
 
 
 @router.post("/upload", response_model=WorkoutResponse)
@@ -157,13 +142,4 @@ async def import_any(file: UploadFile = File(...), db: Session = Depends(get_db)
     if not data.get("sport"):
         data["sport"] = _guess_sport_from_filename(file.filename)
 
-    workout = Workout(
-        **{k: v for k, v in data.items() if hasattr(Workout, k)},
-        source=source_tag,
-        original_filename=file.filename,
-    )
-    db.add(workout)
-    db.commit()
-    invalidate_stats_cache()
-    db.refresh(workout)
-    return WorkoutResponse.from_orm_with_track_flag(workout)
+    return _store(db, data, source_tag, file.filename)

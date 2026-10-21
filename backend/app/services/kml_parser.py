@@ -2,8 +2,10 @@ import io
 import math
 import zipfile
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
+
+from app.services.timeutil import to_local, now_local
 
 KML_NS  = "http://www.opengis.net/kml/2.2"
 KML_NS2 = "http://earth.google.com/kml/2.2"
@@ -59,7 +61,7 @@ def _build_result(name: str, points: list) -> dict:
         track_pts.append(tp)
         prev = (lat, lon)
 
-    started_at = times[0] if times else datetime.now(timezone.utc)
+    started_at = to_local(times[0]) if times else now_local()
     duration = int((times[-1] - times[0]).total_seconds()) if len(times) >= 2 else None
 
     # Elevation gain/loss

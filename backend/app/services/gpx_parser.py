@@ -1,8 +1,9 @@
 import gpxpy
 import gpxpy.gpx
-from datetime import datetime, timezone
 from typing import Optional
 import math
+
+from app.services.timeutil import to_local, now_local
 
 
 def parse_gpx(content: bytes) -> dict:
@@ -109,7 +110,7 @@ def parse_gpx(content: bytes) -> dict:
 
     result = {
         "title": title,
-        "started_at": started_at or datetime.now(timezone.utc),
+        "started_at": to_local(started_at) or now_local(),
         "duration_seconds": duration_seconds,
         "distance_meters": total_distance if total_distance > 0 else None,
         "elevation_gain_meters": elevation_gain if elevation_gain > 0 else None,

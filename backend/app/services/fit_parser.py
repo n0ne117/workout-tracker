@@ -1,7 +1,9 @@
 import fitparse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from typing import Optional
 import math
+
+from app.services.timeutil import to_local, now_local
 
 
 SPORT_MAP = {
@@ -57,6 +59,14 @@ def parse_fit(content: bytes) -> dict:
     for record in fitfile.get_messages("session"):
         for field in record:
             session_data[field.name] = field.value
+
+    # The activity message records the watch's local time beside UTC; their
+    # difference is the offset where the activity actually took place.
+    utc_offset = None
+    for record in fitfile.get_messages("activity"):
+        ts, local_ts = record.get_value("timestamp"), record.get_value("local_timestamp")
+        if isinstance(ts, datetime) and isinstance(local_ts, datetime):
+            utc_offset = timedelta(minutes=round((local_ts - ts).total_seconds() / 60))
 
     for record in fitfile.get_messages("record"):
         fields = {f.name: f.value for f in record}
@@ -118,9 +128,7 @@ def parse_fit(content: bytes) -> dict:
     sport = SUB_SPORT_MAP.get(sub_sport_raw) or SPORT_MAP.get(sport_raw) or "other"
 
     # Timestamps
-    started_at = session_data.get("start_time")
-    if started_at and started_at.tzinfo is None:
-        started_at = started_at.replace(tzinfo=timezone.utc)
+    started_at = to_local(session_data.get("start_time"), utc_offset)
 
     total_elapsed = session_data.get("total_elapsed_time")
     total_timer = session_data.get("total_timer_time")
@@ -156,7 +164,7 @@ def parse_fit(content: bytes) -> dict:
     return {
         "title": title,
         "sport": sport,
-        "started_at": started_at or datetime.now(timezone.utc),
+        "started_at": started_at or now_local(),
         "duration_seconds": int(total_elapsed) if total_elapsed else None,
         "moving_time_seconds": int(total_timer) if total_timer else None,
         "distance_meters": float(total_distance) if total_distance else None,
