@@ -5,8 +5,9 @@ import os
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.database import init_db
@@ -60,16 +61,37 @@ def _safe_render(self, content):
     ).encode("utf-8")
 _sr.JSONResponse.render = _safe_render
 
-app.add_middleware(
-    CORSMiddleware,
-    # The UI is served same-origin through nginx, so CORS only matters for
-    # local development. Credentials with a wildcard origin is a combination
-    # browsers reject outright, and there are no cookies to send anyway.
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# The UI is served same-origin through nginx (and the Vite dev server proxies
+# /api), so no cross-origin access is needed. A wildcard here let any web page
+# open in a browser on the LAN read the whole history — GPS tracks included —
+# or delete it, since the API has no login. CORS_ORIGINS opts specific origins
+# back in, comma-separated, for anyone calling the API from another app.
+_cors_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+@app.middleware("http")
+async def _refuse_cross_site_writes(request: Request, call_next):
+    """
+    CORS only hides responses; a plain form or multipart POST from another
+    site still reaches the API — enough to upload a restore that replaces
+    everything. Browsers send Origin on such requests, so a write whose
+    origin is another host is refused. Hostnames only: nginx forwards $host,
+    which drops the port.
+    """
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        origin = request.headers.get("origin")
+        host = urlparse("//" + request.headers.get("host", "")).hostname
+        if origin and origin not in _cors_origins and urlparse(origin).hostname != host:
+            return JSONResponse({"detail": "Cross-site request refused"}, status_code=403)
+    return await call_next(request)
 
 app.include_router(workouts.router)
 app.include_router(files.router)
