@@ -1,9 +1,7 @@
 # All-in-one image: nginx serves the built SPA and proxies /api to uvicorn on
 # loopback. One container, one port, one volume — which is what Unraid and most
-# other single-container hosts expect.
-#
-# The two-service docker-compose.yml still builds backend/ and frontend/
-# separately for development; this image is what gets published.
+# other single-container hosts expect. docker-compose.dev.yml builds this same
+# image from source.
 
 # ── Stage 1: build the frontend ──────────────────────────────────────────────
 FROM node:20-alpine AS frontend

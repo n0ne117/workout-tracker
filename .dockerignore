@@ -46,10 +46,3 @@ docker-compose*.yml
 *.swp
 .idea/
 .vscode/
-
-# The per-service build files belong to the compose setup, not this image.
-backend/Dockerfile
-backend/.dockerignore
-frontend/Dockerfile
-frontend/.dockerignore
-frontend/nginx.conf

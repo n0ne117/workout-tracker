@@ -5,8 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      // `npm run dev` beside a local `uvicorn app.main:app` from backend/.
+      // VITE_API_TARGET points it elsewhere, e.g. a running container.
       '/api': {
-        target: 'http://backend:8000',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
       },
     },
