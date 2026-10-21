@@ -4,7 +4,7 @@ All data comes from workout_metrics (pre-computed by intervals.icu).
 No recomputation of CTL/ATL — we trust intervals.icu values.
 """
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from sqlalchemy import func
 from typing import Optional
 from datetime import datetime, timedelta, date
@@ -426,6 +426,7 @@ def get_predictions(db: Session = Depends(get_db)):
 
     all_runs = (
         db.query(Workout)
+        .options(defer(Workout.track_points))   # never read; hundreds of KB a row
         .filter(Workout.sport.in_(RUNNING_SPORTS))
         .filter(Workout.started_at >= cutoff)
         .filter(Workout.distance_meters >= 1000)

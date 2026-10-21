@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from sqlalchemy import func, distinct
 from typing import List
 from app.database import get_db
@@ -74,14 +74,18 @@ def get_gear(gear_id: int, db: Session = Depends(get_db)):
 def get_gear_workouts(gear_id: int, db: Session = Depends(get_db)):
     if not db.query(GearItem).filter(GearItem.id == gear_id).first():
         raise HTTPException(status_code=404, detail="Gear item not found")
+    from app.routers.workouts import ids_with_track
     workouts = (
         db.query(Workout)
+        .options(defer(Workout.track_points))
         .join(WorkoutGear, WorkoutGear.workout_id == Workout.id)
         .filter(WorkoutGear.gear_id == gear_id)
         .order_by(Workout.started_at.desc())
         .all()
     )
-    return [WorkoutResponse.from_orm_with_track_flag(w) for w in workouts]
+    with_track = ids_with_track(db, [w.id for w in workouts])
+    return [WorkoutResponse.from_orm_with_track_flag(w, has_track=w.id in with_track)
+            for w in workouts]
 
 
 @router.post("", response_model=GearResponse, status_code=201)

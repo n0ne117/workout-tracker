@@ -34,6 +34,27 @@ def _moving(w) -> int:
 
 
 
+def ids_with_track(db: Session, ids: List[int]) -> set:
+    """
+    Which of these workouts carry a GPS track, in one query.
+
+    For callers that deferred track_points: reading the column to find out
+    would load the blob row by row. length() > 2 skips both NULL and "[]".
+    """
+    if not ids:
+        return set()
+    return {
+        row[0] for row in db.query(Workout.id)
+        .filter(Workout.id.in_(ids))
+        # A workout with no GPS stores JSON null, which SQLite holds as the
+        # 4-character text "null" — length() alone counted that as a track and
+        # disagreed with the detail endpoint. json_type() separates them.
+        .filter(func.json_type(Workout.track_points) == "array")
+        .filter(func.length(Workout.track_points) > 2)
+        .all()
+    }
+
+
 @router.get("", response_model=WorkoutListResponse)
 def list_workouts(
     page: int = Query(1, ge=1),
@@ -72,19 +93,7 @@ def list_workouts(
     total = query.count()
     workouts = query.order_by(Workout.started_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
-    # Resolve has_track for the whole page in one query rather than letting the
-    # deferred blob load row by row. length() > 2 skips both NULL and "[]".
-    with_track = {
-        row[0] for row in db.query(Workout.id)
-        .filter(Workout.id.in_([w.id for w in workouts]))
-        # A workout with no GPS stores JSON null, which SQLite holds as the
-        # 4-character text "null" — length() alone counted that as a track and
-        # disagreed with the detail endpoint. json_type() separates them.
-        .filter(func.json_type(Workout.track_points) == "array")
-        .filter(func.length(Workout.track_points) > 2)
-        .all()
-    } if workouts else set()
-
+    with_track = ids_with_track(db, [w.id for w in workouts])
     items = [
         WorkoutResponse.from_orm_with_track_flag(w, has_track=w.id in with_track)
         for w in workouts
