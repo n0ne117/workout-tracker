@@ -109,7 +109,12 @@ def _parse_gx_track(root) -> list:
     """Parse gx:Track elements (Garmin-extended KML with timestamps)."""
     points = []
     for track in root.iter(f"{{{GX_NS}}}Track"):
-        whens = [el.text for el in track.findall(f"{{{GX_NS}}}when") or track.findall("when")]
+        # <when> belongs to the KML namespace in files from Google Earth and
+        # most exporters; only some put it under gx: or leave it bare.
+        whens = []
+        for ns in (KML_NS, KML_NS2, GX_NS):
+            whens = whens or [el.text for el in track.findall(f"{{{ns}}}when")]
+        whens = whens or [el.text for el in track.findall("when")]
         coords = [el.text for el in track.findall(f"{{{GX_NS}}}coord")]
         for w, c in zip(whens, coords):
             try:
