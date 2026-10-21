@@ -79,7 +79,7 @@
   <Config Name="TZ"
           Target="TZ"
           Default="Europe/Vienna"
-          Description="Container timezone, used for log timestamps. Workout dates are stored as recorded and grouped using your browser's timezone, so this does not affect the statistics."
+          Description="Your timezone. Workouts are stored in local time; GPX, TCX and KML files only carry UTC, so their start times are converted using this. FIT files and Intervals.icu bring their own offset. Also sets log timestamps."
           Type="Variable"
           Display="advanced"
           Required="false"
