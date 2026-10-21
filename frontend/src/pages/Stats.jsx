@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../hooks/useApi'
-import { formatSport, formatDuration, formatDistance, formatRateFromPace } from '../utils/format'
+import { formatSport, formatDuration, formatDistance, formatRateFromPace, isoDate } from '../utils/format'
 import SportIcon from '../components/SportIcon'
 import PeriodSummary from '../components/PeriodSummary'
 import { Loader2, TrendingUp, Activity, Map, Clock, Mountain, Trophy, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -80,7 +80,7 @@ function Heatmap({ heatmap }) {
     for (let d = 0; d < 7; d++) {
       const cur = new Date(start)
       cur.setDate(start.getDate() + w * 7 + d)
-      const iso = cur.toISOString().slice(0, 10)
+      const iso = isoDate(cur)
       week.push({ date: iso, count: heatmap[iso] || 0, future: cur > today })
     }
     weeks.push(week)

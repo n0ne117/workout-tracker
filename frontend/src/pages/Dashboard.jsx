@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import WorkoutTable, { loadCollapsed, saveCollapsed, groupWorkouts, defaultCollapsed } from '../components/WorkoutTable'
 import FilterBar from '../components/FilterBar'
 import { api, buildWorkoutQuery } from '../hooks/useApi'
+import { isoDate } from '../utils/format'
 import { Loader2, ListChecks } from 'lucide-react'
 import BulkActionBar from '../components/BulkActionBar'
 import clsx from 'clsx'
@@ -12,8 +13,8 @@ function currentMonthRange() {
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth()
-  const dateFrom = new Date(year, month, 1).toISOString().slice(0, 10)
-  const dateTo = new Date(year, month + 1, 0).toISOString().slice(0, 10)
+  const dateFrom = isoDate(new Date(year, month, 1))
+  const dateTo = isoDate(new Date(year, month + 1, 0))
   return { dateFrom, dateTo }
 }
 
@@ -27,24 +28,35 @@ export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(loadCollapsed)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
+  // Bumped by every full reload. A response that comes back after a newer
+  // request started is for filters no longer on screen — typing "tempo"
+  // fires one per keystroke, and the slow "te" must not land last.
+  const requestSeq = useRef(0)
 
   // Full reload whenever filters change (page resets to 1)
   const load = useCallback(async () => {
+    const seq = ++requestSeq.current
     setLoading(true)
     setError(null)
     try {
       const q = buildWorkoutQuery({ ...filters, page: 1, pageSize: PAGE_SIZE })
       const res = await api.get(`/workouts?${q}`)
+      if (seq !== requestSeq.current) return
       setWorkouts(res.items)
       setTotal(res.total)
     } catch (e) {
+      if (seq !== requestSeq.current) return
       setError(typeof e.message === 'string' ? e.message : JSON.stringify(e.message))
     } finally {
-      setLoading(false)
+      if (seq === requestSeq.current) setLoading(false)
     }
   }, [filters])
 
-  useEffect(() => { load() }, [load])
+  // Searches wait for a pause in typing; every other filter applies at once.
+  useEffect(() => {
+    const t = setTimeout(load, filters.search ? 250 : 0)
+    return () => clearTimeout(t)
+  }, [load, filters.search])
 
   // Drop selections when the filters change: those ids are no longer on
   // screen, and acting on rows you cannot see is how bulk tools go wrong.
@@ -56,11 +68,14 @@ export default function Dashboard() {
   }
 
   async function loadMore() {
+    const seq = requestSeq.current
     setLoadingMore(true)
     try {
       const nextPage = Math.floor(workouts.length / PAGE_SIZE) + 1
       const q = buildWorkoutQuery({ ...filters, page: nextPage, pageSize: PAGE_SIZE })
       const res = await api.get(`/workouts?${q}`)
+      // The filters changed while this page loaded, so it no longer fits.
+      if (seq !== requestSeq.current) return
       setWorkouts(prev => [...prev, ...res.items])
       setTotal(res.total)
     } catch (e) {
