@@ -251,8 +251,11 @@ function BackupSection() {
 
     try {
       const res = await fetch(`/api/backup/restore`, { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || res.statusText)
+      // An upload over nginx's limit is answered by nginx itself, as HTML.
+      if (res.status === 413) throw new Error('Backup file is too large to upload.')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.detail || res.statusText || `Restore failed (${res.status})`)
+      if (!data) throw new Error('Unexpected response from the server.')
       setRestoreResult(data)
     } catch (e) {
       setRestoreError(e.message)
@@ -326,6 +329,9 @@ function BackupSection() {
             <p className="font-medium">✓ Restore complete ({restoreResult.backup_type} backup)</p>
             {Object.entries(restoreResult.stats?.restored ?? {}).map(([k, v]) => (
               <p key={k} className="text-xs">• {k}: {v} records restored</p>
+            ))}
+            {(restoreResult.stats?.errors ?? []).map((msg, i) => (
+              <p key={i} className="text-xs text-amber-700 dark:text-amber-300">⚠ {msg}</p>
             ))}
           </div>
         )}
