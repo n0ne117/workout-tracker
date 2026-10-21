@@ -1,6 +1,7 @@
 import os
+from datetime import datetime
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import bindparam, create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 # DATA_DIR lets the published all-in-one image relocate the database without a
@@ -36,6 +37,49 @@ def init_db():
     from app import models  # noqa: F401
     Base.metadata.create_all(bind=engine)
     _migrate_db()
+    _convert_file_times()
+
+
+# PRAGMA user_version records which one-off data migrations have run.
+FILE_TIMES_LOCAL = 1
+
+
+def _convert_file_times():
+    """
+    Convert the start times of older file imports from UTC to local time.
+
+    started_at is local wall-clock time, but the file parsers used to store
+    UTC, so those workouts showed hours off and never matched their Intervals
+    copy. FIT files carried the real offset, but the files are not kept, so
+    the container's TZ stands in for every format.
+
+    Runs once. It cannot wait for TZ to be set: FIT imports from then on carry
+    the watch's own offset whatever TZ says, and would be shifted twice.
+    """
+    from app.services.timeutil import FILE_SOURCES, to_local, zone_is_utc
+
+    with engine.connect() as conn:
+        if conn.execute(text("PRAGMA user_version")).scalar() >= FILE_TIMES_LOCAL:
+            return
+        rows = conn.execute(
+            text("SELECT id, started_at FROM workouts WHERE source IN :sources")
+            .bindparams(bindparam("sources", expanding=True)),
+            {"sources": list(FILE_SOURCES)},
+        ).fetchall()
+        if rows and zone_is_utc():
+            print(f"[migrate] TZ is UTC, so {len(rows)} file-imported workouts keep "
+                  "their UTC start times")
+            rows = []
+        for workout_id, started_at in rows:
+            local = to_local(datetime.fromisoformat(started_at))
+            conn.execute(
+                text("UPDATE workouts SET started_at = :t WHERE id = :id"),
+                {"t": local.strftime("%Y-%m-%d %H:%M:%S.%f"), "id": workout_id},
+            )
+        conn.execute(text(f"PRAGMA user_version = {FILE_TIMES_LOCAL}"))
+        conn.commit()
+        if rows:
+            print(f"[migrate] converted {len(rows)} file-imported workouts to local time")
 
 
 def _migrate_db():

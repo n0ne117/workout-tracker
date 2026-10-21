@@ -42,3 +42,15 @@ def to_local(dt: Optional[datetime], utc_offset: Optional[timedelta] = None) -> 
 
 def now_local() -> datetime:
     return to_local(datetime.now(timezone.utc))
+
+
+# Sources whose started_at was stored as UTC before file times were converted.
+FILE_SOURCES = ("fit_file", "gpx_file", "tcx_file", "kml_file", "kmz_file")
+
+
+def zone_is_utc() -> bool:
+    """True when local time is UTC all year, so converting changes nothing."""
+    return all(
+        to_local(datetime(2026, month, 1, 12)) == datetime(2026, month, 1, 12)
+        for month in (1, 7)
+    )

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.cache import invalidate_stats_cache
 from app.database import get_db
 from app.models import Workout, GearItem, WorkoutGear, WorkoutMetrics, RaceEntry, ChallengeItem
+from app.services.timeutil import FILE_SOURCES, to_local, now_local
 
 router = APIRouter(prefix="/api/backup", tags=["backup"])
 
@@ -161,6 +162,7 @@ def backup_workouts(db: Session = Depends(get_db)):
         "version": MANIFEST_VERSION,
         "type": "workouts",
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "file_times": "local",
         "counts": {"workouts": len(workouts), "workout_metrics": len(metrics),
                    "workout_gear": len(wg_rows)},
     }
@@ -191,6 +193,7 @@ def backup_full(db: Session = Depends(get_db)):
         "version": MANIFEST_VERSION,
         "type": "full",
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "file_times": "local",
         "counts": {
             "workouts": len(workouts),
             "workout_metrics": len(metrics),
@@ -250,13 +253,19 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
         db.query(Workout).delete()
         db.flush()
 
+        # Backups written before file imports were converted hold those start
+        # times in UTC; bring them in line with everything else.
+        convert_file_times = manifest.get("file_times") != "local"
+
         id_map = {}  # old_id → new_id (for workout_gear restore)
         imported = 0
         for row in rows:
             old_id = row.pop("id", None)
             row.pop("created_at", None)
             row.pop("updated_at", None)
-            row["started_at"] = _parse_dt(row.get("started_at")) or datetime.now(timezone.utc)
+            row["started_at"] = _parse_dt(row.get("started_at")) or now_local()
+            if convert_file_times and row.get("source") in FILE_SOURCES:
+                row["started_at"] = to_local(row["started_at"])
             w = Workout(**{k: v for k, v in row.items() if hasattr(Workout, k)})
             db.add(w)
             db.flush()
