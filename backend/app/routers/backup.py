@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from app.cache import invalidate_stats_cache
 from app.database import get_db
-from app.models import Workout, GearItem, WorkoutGear, RaceEntry, ChallengeItem
+from app.models import Workout, GearItem, WorkoutGear, WorkoutMetrics, RaceEntry, ChallengeItem
 
 router = APIRouter(prefix="/api/backup", tags=["backup"])
 
@@ -81,6 +82,18 @@ def _gear_to_dict(g: GearItem) -> dict:
     }
 
 
+# Everything but the key and the bookkeeping timestamp; the restore re-keys
+# each row onto the workout's new id.
+_METRIC_FIELDS = [
+    c.name for c in WorkoutMetrics.__table__.columns
+    if c.name not in ("workout_id", "updated_at")
+]
+
+
+def _metrics_to_dict(m: WorkoutMetrics) -> dict:
+    return {"workout_id": m.workout_id, **{f: getattr(m, f) for f in _METRIC_FIELDS}}
+
+
 def _race_to_dict(r: RaceEntry) -> dict:
     return {
         "id": r.id,
@@ -134,19 +147,31 @@ def _build_zip(payload: dict, filename: str) -> StreamingResponse:
 
 @router.get("/workouts")
 def backup_workouts(db: Session = Depends(get_db)):
-    """Download a ZIP archive containing all workouts."""
+    """
+    Download a ZIP archive containing all workouts.
+
+    Gear links ride along, with the gear list for reference only: a workouts
+    restore leaves gear alone, and uses the names to re-attach the links.
+    """
     workouts = db.query(Workout).order_by(Workout.started_at).all()
+    metrics  = db.query(WorkoutMetrics).all()
+    gear     = db.query(GearItem).all()
+    wg_rows  = db.query(WorkoutGear).all()
     manifest = {
         "version": MANIFEST_VERSION,
         "type": "workouts",
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "counts": {"workouts": len(workouts)},
+        "counts": {"workouts": len(workouts), "workout_metrics": len(metrics),
+                   "workout_gear": len(wg_rows)},
     }
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     return _build_zip(
         {
             "manifest.json": manifest,
             "workouts.json": [_workout_to_dict(w) for w in workouts],
+            "workout_metrics.json": [_metrics_to_dict(m) for m in metrics],
+            "gear.json": [_gear_to_dict(g) for g in gear],
+            "workout_gear.json": [{"workout_id": r.workout_id, "gear_id": r.gear_id} for r in wg_rows],
         },
         f"workouts_backup_{ts}.zip",
     )
@@ -156,6 +181,7 @@ def backup_workouts(db: Session = Depends(get_db)):
 def backup_full(db: Session = Depends(get_db)):
     """Download a ZIP archive containing all data."""
     workouts   = db.query(Workout).order_by(Workout.started_at).all()
+    metrics    = db.query(WorkoutMetrics).all()
     gear       = db.query(GearItem).all()
     wg_rows    = db.query(WorkoutGear).all()
     races      = db.query(RaceEntry).order_by(RaceEntry.date).all()
@@ -167,6 +193,7 @@ def backup_full(db: Session = Depends(get_db)):
         "created_at": datetime.now(timezone.utc).isoformat(),
         "counts": {
             "workouts": len(workouts),
+            "workout_metrics": len(metrics),
             "gear": len(gear),
             "workout_gear": len(wg_rows),
             "races": len(races),
@@ -178,6 +205,7 @@ def backup_full(db: Session = Depends(get_db)):
         {
             "manifest.json": manifest,
             "workouts.json": [_workout_to_dict(w) for w in workouts],
+            "workout_metrics.json": [_metrics_to_dict(m) for m in metrics],
             "gear.json": [_gear_to_dict(g) for g in gear],
             "workout_gear.json": [{"workout_id": r.workout_id, "gear_id": r.gear_id} for r in wg_rows],
             "races.json": [_race_to_dict(r) for r in races],
@@ -214,8 +242,11 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
     # ── Workouts ────────────────────────────────────────────────────────────
     if "workouts.json" in names:
         rows = json.loads(zf.read("workouts.json"))
-        # Delete existing workouts (and their gear links)
+        # Delete existing workouts with their gear links and metrics. Links are
+        # rebuilt below from workout_gear.json; a backup without one (written
+        # before links were included in workouts backups) cannot restore them.
         db.query(WorkoutGear).delete()
+        db.query(WorkoutMetrics).delete()
         db.query(Workout).delete()
         db.flush()
 
@@ -234,7 +265,24 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
             imported += 1
         stats["restored"]["workouts"] = imported
 
+        # ── Metrics ──────────────────────────────────────────────────────────
+        if "workout_metrics.json" in names:
+            count = 0
+            for row in json.loads(zf.read("workout_metrics.json")):
+                new_wid = id_map.get(row.get("workout_id"))
+                if new_wid:
+                    db.add(WorkoutMetrics(workout_id=new_wid,
+                                          **{f: row.get(f) for f in _METRIC_FIELDS}))
+                    count += 1
+            stats["restored"]["workout_metrics"] = count
+
+        if "workout_gear.json" not in names and db.query(GearItem).count():
+            stats["errors"].append(
+                "This backup has no gear links, so workouts were restored without their gear."
+            )
+
     # ── Gear ────────────────────────────────────────────────────────────────
+    gear_id_map = None
     if "gear.json" in names and backup_type == "full":
         rows = json.loads(zf.read("gear.json"))
         db.query(GearItem).delete()
@@ -253,18 +301,37 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
                 gear_id_map[old_id] = g.id
             imported += 1
         stats["restored"]["gear"] = imported
+    elif "gear.json" in names:
+        # Workouts-only restore: gear stays as it is, so match the backup's gear
+        # onto what exists — same id and name first, then by name alone.
+        existing = db.query(GearItem).all()
+        by_id = {g.id: g for g in existing}
+        by_name = {}
+        for g in existing:
+            by_name.setdefault(g.name, []).append(g.id)
+        gear_id_map = {}
+        for row in json.loads(zf.read("gear.json")):
+            same = by_id.get(row.get("id"))
+            if same is not None and same.name == row.get("name"):
+                gear_id_map[row["id"]] = same.id
+            elif len(by_name.get(row.get("name"), [])) == 1:
+                gear_id_map[row["id"]] = by_name[row["name"]][0]
 
-        # ── WorkoutGear links ────────────────────────────────────────────────
-        if "workout_gear.json" in names:
-            links = json.loads(zf.read("workout_gear.json"))
-            count = 0
-            for link in links:
-                new_wid = id_map.get(link["workout_id"])
-                new_gid = gear_id_map.get(link["gear_id"])
-                if new_wid and new_gid:
-                    db.add(WorkoutGear(workout_id=new_wid, gear_id=new_gid))
-                    count += 1
-            stats["restored"]["workout_gear"] = count
+    # ── WorkoutGear links ────────────────────────────────────────────────────
+    if "workouts.json" in names and "workout_gear.json" in names and gear_id_map is not None:
+        links = json.loads(zf.read("workout_gear.json"))
+        count = 0
+        for link in links:
+            new_wid = id_map.get(link["workout_id"])
+            new_gid = gear_id_map.get(link["gear_id"])
+            if new_wid and new_gid:
+                db.add(WorkoutGear(workout_id=new_wid, gear_id=new_gid))
+                count += 1
+        stats["restored"]["workout_gear"] = count
+        if count < len(links):
+            stats["errors"].append(
+                f"{len(links) - count} gear link(s) could not be matched to a workout or gear item."
+            )
 
     # ── Races ────────────────────────────────────────────────────────────────
     if "races.json" in names and backup_type == "full":
@@ -302,4 +369,5 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
         stats["restored"]["challenges"] = imported
 
     db.commit()
+    invalidate_stats_cache()
     return {"ok": True, "backup_type": backup_type, "stats": stats}
