@@ -36,6 +36,14 @@ jobs:
           echo "version=${TAG#v}"              >> "$GITHUB_OUTPUT"
           # Lowercase the owner — GHCR rejects uppercase in image paths.
           echo "image=$REGISTRY/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          # :latest follows the newest stable release only — republishing an
+          # older tag, or a pre-release like v1.5.0-rc1, must not move it.
+          NEWEST=$(git tag -l 'v*' --sort=-v:refname | grep -v -- - | head -n1)
+          if [ "$TAG" = "$NEWEST" ]; then
+            echo "latest=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "latest=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: docker/setup-buildx-action@v3
 
@@ -45,25 +53,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Unraid is x86-64 only. Add linux/arm64 here if you ever want to run
-      # this on a Pi or an Apple-silicon Docker host.
-      - name: Build and push
+      # Built into the local Docker daemon first, so the smoke test runs before
+      # anything is published — a broken build never becomes :latest.
+      # Unraid is x86-64 only. Adding linux/arm64 would need a push-by-digest
+      # step instead, since a multi-platform build cannot be loaded locally.
+      - name: Build
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
-          push: true
+          load: true
           provenance: false   # keeps the GHCR package page showing one clean manifest
-          tags: |
-            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
-            ${{ steps.version.outputs.image }}:latest
+          tags: ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-      - name: Smoke-test the published image
+      - name: Smoke-test the image
         run: |
           IMAGE="${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}"
           mkdir -p /tmp/wt-data
@@ -86,6 +94,18 @@ jobs:
           test -f /tmp/wt-data/workouts.db || { echo "::error::database not created"; exit 1; }
           echo "smoke test passed"
           docker rm -f smoke
+
+      - name: Push
+        run: |
+          IMAGE="${{ steps.version.outputs.image }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          docker push "$IMAGE:$VERSION"
+          if [ "${{ steps.version.outputs.latest }}" = "true" ]; then
+            docker tag "$IMAGE:$VERSION" "$IMAGE:latest"
+            docker push "$IMAGE:latest"
+          else
+            echo "not the newest stable tag; :latest left where it is"
+          fi
 
       - name: Extract release notes
         id: notes
