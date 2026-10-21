@@ -1,8 +1,8 @@
 # Workout Tracker
 
-Self-hosted training log. Imports from Intervals.icu, Garmin Connect and
-FIT/GPX/TCX/KML files, then shows history, maps, charts, stats, gear wear,
-races and training load. One container, responsive UI.
+Self-hosted training log. Imports from Intervals.icu and FIT/GPX/TCX/KML
+files, then shows history, maps, charts, stats, gear wear, races and
+training load. One container, responsive UI.
 
 ```yaml
 services:
