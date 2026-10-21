@@ -269,11 +269,14 @@ def bulk_update(req: BulkUpdate, db: Session = Depends(get_db)):
 
 @router.post("/bulk/delete")
 def bulk_delete(req: BulkIds, db: Session = Depends(get_db)):
-    """Delete many workouts, and the gear links that would otherwise dangle."""
+    """Delete many workouts, and the gear links and metrics that would otherwise dangle."""
     found = _bulk_fetch(req.ids, db)
     found_ids = [w.id for w in found]
     if found_ids:
         db.query(WorkoutGear).filter(WorkoutGear.workout_id.in_(found_ids)).delete(
+            synchronize_session=False
+        )
+        db.query(WorkoutMetrics).filter(WorkoutMetrics.workout_id.in_(found_ids)).delete(
             synchronize_session=False
         )
         db.query(Workout).filter(Workout.id.in_(found_ids)).delete(
@@ -372,6 +375,7 @@ def delete_workout(workout_id: int, db: Session = Depends(get_db)):
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     db.query(WorkoutGear).filter(WorkoutGear.workout_id == workout_id).delete()
+    db.query(WorkoutMetrics).filter(WorkoutMetrics.workout_id == workout_id).delete()
     db.delete(workout)
     db.commit()
     invalidate_stats_cache()
@@ -422,6 +426,7 @@ def delete_all_workouts(
         )
     count = db.query(Workout).count()
     db.query(WorkoutGear).delete()
+    db.query(WorkoutMetrics).delete()
     db.query(Workout).delete()
     db.commit()
     invalidate_stats_cache()

@@ -96,6 +96,26 @@ def _migrate_db():
             )
         conn.commit()
 
+        # Deleting a workout used to leave its metrics row behind (SQLite does
+        # not enforce the ON DELETE CASCADE without PRAGMA foreign_keys), and
+        # SQLite hands a freed id to the next insert — so a new workout could
+        # inherit a dead one's zones and training load. A metrics row is always
+        # written after its workout, so one older than its workout is stale.
+        conn.execute(text(
+            "DELETE FROM workout_metrics WHERE workout_id NOT IN (SELECT id FROM workouts)"
+        ))
+        conn.execute(text(
+            "DELETE FROM workout_metrics WHERE workout_id IN ("
+            "  SELECT m.workout_id FROM workout_metrics m"
+            "  JOIN workouts w ON w.id = m.workout_id"
+            "  WHERE m.updated_at < w.created_at)"
+        ))
+        conn.execute(text(
+            "DELETE FROM workout_gear WHERE workout_id NOT IN (SELECT id FROM workouts)"
+            " OR gear_id NOT IN (SELECT id FROM gear_items)"
+        ))
+        conn.commit()
+
         conn.execute(text(
             "CREATE INDEX IF NOT EXISTS idx_workout_gear_gear_id ON workout_gear (gear_id)"
         ))
