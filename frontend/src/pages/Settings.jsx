@@ -256,6 +256,7 @@ function BackupSection() {
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.detail || res.statusText || `Restore failed (${res.status})`)
       if (!data) throw new Error('Unexpected response from the server.')
+      api.invalidateAll()   // the restore replaced the gear list, among everything else
       setRestoreResult(data)
     } catch (e) {
       setRestoreError(e.message)

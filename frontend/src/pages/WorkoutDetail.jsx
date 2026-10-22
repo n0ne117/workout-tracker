@@ -77,7 +77,6 @@ function GearSection({ workoutId }) {
     try {
       await api.post(`/workouts/${workoutId}/gear/${item.id}`, {})
       setGearItems(prev => [...prev, item])
-      api.invalidate('/gear')
     } catch (e) { alert(e.message) }
     setPickerOpen(false)
   }
@@ -86,7 +85,6 @@ function GearSection({ workoutId }) {
     try {
       await api.delete(`/workouts/${workoutId}/gear/${gearId}`)
       setGearItems(prev => prev.filter(g => g.id !== gearId))
-      api.invalidate('/gear')
     } catch (e) { alert(e.message) }
   }
 

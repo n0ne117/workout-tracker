@@ -74,6 +74,7 @@ export default function GearDetail() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [activitiesOpen, setActivitiesOpen] = useState(false)
   const [workouts, setWorkouts] = useState([])
+  const [workoutsFor, setWorkoutsFor] = useState(null)   // gear id `workouts` belongs to
   const [workoutsLoading, setWorkoutsLoading] = useState(false)
   const [form, setForm] = useState(null)
 
@@ -84,14 +85,19 @@ export default function GearDetail() {
       .finally(() => setLoading(false))
   }, [id])
 
+  // Loaded once per gear item. Checking `workouts.length` instead kept the
+  // previous item's list when moving straight from one item to another.
   useEffect(() => {
-    if (!activitiesOpen || workouts.length > 0) return
+    if (!activitiesOpen || workoutsFor === id) return
+    let cancelled = false
+    setWorkouts([])
     setWorkoutsLoading(true)
     api.get(`/gear/${id}/workouts`)
-      .then(setWorkouts)
+      .then(list => { if (!cancelled) { setWorkouts(list); setWorkoutsFor(id) } })
       .catch(() => {})
-      .finally(() => setWorkoutsLoading(false))
-  }, [activitiesOpen, id])
+      .finally(() => { if (!cancelled) setWorkoutsLoading(false) })
+    return () => { cancelled = true }
+  }, [activitiesOpen, id, workoutsFor])
 
   function toForm(data) {
     return {

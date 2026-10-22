@@ -51,11 +51,18 @@ async function request(method, path, body, isFormData = false) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(err.detail || 'Request failed')
   }
+  // Any write can change what a cached GET returned — a new gear item, a bulk
+  // edit — and the cache cannot tell which, so it starts over.
+  if (method !== 'GET') clearCache()
   return res.json()
 }
 
 // Simple in-memory cache for GET requests (TTL in ms)
 const _cache = {}
+
+function clearCache() {
+  for (const key of Object.keys(_cache)) delete _cache[key]
+}
 
 async function cachedGet(path, ttlMs = 30_000) {
   const now = Date.now()
@@ -70,7 +77,7 @@ async function cachedGet(path, ttlMs = 30_000) {
 export const api = {
   get: (path) => request('GET', path),
   getCached: (path, ttlMs) => cachedGet(path, ttlMs),
-  invalidate: (path) => { delete _cache[path] },
+  invalidateAll: () => clearCache(),
   post: (path, body) => request('POST', path, body),
   patch: (path, body) => request('PATCH', path, body),
   delete: (path) => request('DELETE', path),
