@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HeartPulse, Loader2, RefreshCw, Table2, ChevronDown } from 'lucide-react'
+import {
+  HeartPulse, Loader2, RefreshCw, Table2, ChevronDown,
+  CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus,
+} from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'
 import { WELLNESS_CHANGED } from '../hooks/useIntervalsSync'
 import { formatDate, isoDate } from '../utils/format'
 import {
-  GROUPS, HEADLINE, meta, formatValue, displayValue, rollingMean, relationships,
-  strength, describe, parseDay, addDays,
+  GROUPS, HEADLINE, meta, formatValue, rollingMean, compareToUsual, parseDay, addDays,
 } from '../utils/wellness'
 import TrendChart from '../components/health/TrendChart'
-import ScatterChart from '../components/health/ScatterChart'
 import InfoTip from '../components/runlab/InfoTip'
 
 const RANGES = [
@@ -90,7 +91,7 @@ export default function Health() {
       <div className="flex-1 min-w-0">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">Health</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Daily wellness from Intervals.icu — trends, and what moves together
+          Daily wellness from Intervals.icu — what each number means, and how you compare with your usual
         </p>
       </div>
       {status?.days > 0 && (
@@ -198,10 +199,42 @@ function HealthBody({ data, days: rangeDays }) {
 
   return <>
     <Headline series={series} fields={fields} />
-    <Relationships days={days} fields={fields} />
+    <WeekSummary series={series} fields={fields} />
     <Trends series={series} fields={fields} domain={domain} />
     <DayTable days={days} fields={fields} />
   </>
+}
+
+// ── Verdicts ──────────────────────────────────────────────────────────────────
+
+const VERDICT = {
+  better: { text: 'Better than usual', icon: CheckCircle2, cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+  worse:  { text: 'Worse than usual',  icon: AlertTriangle, cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+  higher: { text: 'Higher than usual', icon: ArrowUp,  cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+  lower:  { text: 'Lower than usual',  icon: ArrowDown, cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+  usual:  { text: 'About usual',       icon: Minus,    cls: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
+}
+
+/** Icon and words with the colour, so the verdict never rests on colour alone. */
+function Verdict({ verdict, short = false }) {
+  const v = VERDICT[verdict]
+  const Icon = v.icon
+  return (
+    <span className={clsx('badge gap-1 whitespace-nowrap', v.cls)}>
+      <Icon size={12} />
+      {short ? v.text.replace(' than usual', '') : v.text}
+    </span>
+  )
+}
+
+function Explainer({ field }) {
+  const m = meta(field)
+  const text = [m.desc, m.good].filter(Boolean).join(' ')
+  return text ? <InfoTip text={text} /> : null
+}
+
+function signedDelta(field, delta) {
+  return `${delta >= 0 ? '+' : '−'}${formatValue(field, Math.abs(delta), { unit: false })}`
 }
 
 // ── Latest values ─────────────────────────────────────────────────────────────
@@ -214,24 +247,25 @@ function Headline({ series, fields }) {
       {shown.map(f => {
         const s = series[f]
         const latest = s[s.length - 1]
-        // Baseline: the 28 days before the latest reading.
-        const cutoff = addDays(latest.date, -28)
-        const before = s.filter(p => p.date < latest.date && p.date >= cutoff)
-        const base = before.length ? before.reduce((a, p) => a + p.value, 0) / before.length : null
-        const delta = base != null ? displayValue(f, latest.value) - displayValue(f, base) : null
+        // The latest day against the 28 before it.
+        const cmp = compareToUsual(s, f, { recent: 1 })
         return (
-          <div key={f} className="card p-4">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{meta(f).label}</p>
+          <div key={f} className="card p-4 flex flex-col">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{meta(f).label}</p>
+              <Explainer field={f} />
+            </div>
             <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white leading-none">
               {formatValue(f, latest.value, { unit: false })}
               {meta(f).unit && <span className="ml-1 text-sm font-medium text-gray-400">{meta(f).unit}</span>}
             </p>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              {delta != null && Math.abs(delta) > 1e-9
-                ? <>{delta > 0 ? '▲' : '▼'} {formatValue(f, Math.abs(delta) / (meta(f).scale ?? 1), { unit: false })} vs 28-day avg</>
-                : base != null ? 'Same as 28-day avg' : 'No baseline yet'}
+            <p className="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500">
+              {formatDate(parseDay(latest.date))}
+              {cmp && <> · usual {formatValue(f, cmp.usual)}</>}
             </p>
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{formatDate(parseDay(latest.date))}</p>
+            <div className="mt-auto pt-2.5">
+              {cmp ? <Verdict verdict={cmp.verdict} /> : <span className="text-xs text-gray-400">No baseline yet</span>}
+            </div>
           </div>
         )
       })}
@@ -239,80 +273,62 @@ function Headline({ series, fields }) {
   )
 }
 
-// ── Relationships ─────────────────────────────────────────────────────────────
+// ── This week vs your usual ───────────────────────────────────────────────────
 
-const RELATIONSHIP_INFO =
-  "Each day is compared with that measurement's own 4-week average, so slow drifts over months don't " +
-  "count. The number is the correlation of those day-to-day swings over the days both were recorded, from −1 to +1. " +
-  "Blue bars: both rise together. Orange: one rises as the other falls. It shows what moves together, " +
-  "not what causes what — a third thing (a hard week, a holiday, the season) can drive both."
+const ORDER = { worse: 0, better: 1, higher: 2, lower: 2, usual: 3 }
 
-function Relationships({ days, fields }) {
-  const rels = useMemo(() => relationships(days, fields).slice(0, 12), [days, fields])
-  const [selected, setSelected] = useState(0)
-  useEffect(() => setSelected(0), [rels])
+function WeekSummary({ series, fields }) {
+  const rows = fields
+    .filter(f => meta(f).group !== 'Training')
+    .map(f => ({ f, cmp: compareToUsual(series[f], f) }))
+    .filter(r => r.cmp)
+    .sort((a, b) => ORDER[a.cmp.verdict] - ORDER[b.cmp.verdict])
+  if (!rows.length) return null
+  const changed = rows.filter(r => r.cmp.verdict !== 'usual')
+  const steady = rows.filter(r => r.cmp.verdict === 'usual')
 
   return (
     <div className="card p-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-white">What moves together</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Days compared with your usual (4-week average). Pick one to see every day behind it.
-          </p>
-        </div>
-        <InfoTip text={RELATIONSHIP_INFO} />
+      <div>
+        <h2 className="font-semibold text-gray-900 dark:text-white">This week vs your usual</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          Average of the last 7 days against the 4 weeks before. Only changes bigger than your normal
+          day-to-day ups and downs are called out.
+        </p>
       </div>
 
-      {rels.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          No clear relationships here — try a longer range. A pair needs at least 20 shared days.
-        </p>
+      {changed.length === 0 ? (
+        <p className="text-sm text-gray-600 dark:text-gray-300">Everything is within your usual range.</p>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          <ol className="lg:col-span-2 space-y-1">
-            {rels.map((rel, i) => (
-              <li key={`${rel.x}-${rel.y}-${rel.lag}`}>
-                <button
-                  onClick={() => setSelected(i)}
-                  className={clsx(
-                    'w-full text-left rounded-lg px-3 py-2 transition-colors',
-                    i === selected ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50',
-                  )}
-                >
-                  <p className="text-sm text-gray-800 dark:text-gray-200">{describe(rel)}</p>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <CorrelationBar r={rel.r} />
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap">
-                      r {rel.r > 0 ? '+' : '−'}{Math.abs(rel.r).toFixed(2)} · {strength(rel.r)} · {rel.n} days
-                    </span>
-                  </div>
-                </button>
-                {/* Phones: the chart opens under the chosen row, not twelve rows away. */}
-                {i === selected && <div className="lg:hidden pt-2"><ScatterChart rel={rel} /></div>}
-              </li>
-            ))}
-          </ol>
-          <div className="hidden lg:block lg:col-span-3 min-w-0 lg:sticky lg:top-20 self-start">
-            {rels[selected] && <ScatterChart rel={rels[selected]} />}
-          </div>
-        </div>
+        <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          {changed.map(({ f, cmp }) => (
+            <li key={f} className="py-3 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                  {meta(f).label} <Explainer field={f} />
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{meta(f).desc}</p>
+              </div>
+              <div className="flex items-center gap-3 sm:justify-end">
+                <p className="text-sm text-gray-900 dark:text-white tabular-nums whitespace-nowrap">
+                  {formatValue(f, cmp.current)}
+                  <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    ({signedDelta(f, cmp.delta)} vs {formatValue(f, cmp.usual, { unit: false })})
+                  </span>
+                </p>
+                <Verdict verdict={cmp.verdict} short />
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
-  )
-}
 
-/** −1 … +1 around a gray zero line: blue to the right, orange to the left. */
-function CorrelationBar({ r }) {
-  const half = Math.min(1, Math.abs(r)) * 50
-  return (
-    <div className="relative h-1.5 w-24 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-800">
-      <div className="absolute left-1/2 top-[-2px] bottom-[-2px] w-px bg-gray-300 dark:bg-gray-600" />
-      <div
-        className={clsx('absolute top-0 bottom-0 rounded-full',
-          r > 0 ? 'bg-blue-600 dark:bg-blue-500' : 'bg-orange-600')}
-        style={r > 0 ? { left: '50%', width: `${half}%` } : { right: '50%', width: `${half}%` }}
-      />
+      {steady.length > 0 && (
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="font-medium text-gray-600 dark:text-gray-300">About usual: </span>
+          {steady.map(r => meta(r.f).label).join(', ')}
+        </p>
+      )}
     </div>
   )
 }
@@ -326,6 +342,10 @@ function Trends({ series, fields, domain }) {
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        Trends — each dot is a day, the line is the 7-day average. The badge compares the last 7 days with
+        the 4 weeks before.
+      </p>
       {groups.map(({ g, fs }) => (
         <section key={g} className="space-y-3">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{g}</h2>
@@ -333,18 +353,20 @@ function Trends({ series, fields, domain }) {
             {fs.map(f => {
               const s = series[f]
               const latest = s[s.length - 1]
+              const cmp = compareToUsual(s, f)
               return (
                 <div key={f} className="card p-4 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate flex items-center gap-1.5">
-                      {meta(f).label}
-                      {meta(f).note && <InfoTip text={meta(f).note} />}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{meta(f).label}</span>
+                      <Explainer field={f} />
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-white whitespace-nowrap">{formatValue(f, latest.mean)}</p>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <p className="text-sm text-gray-900 dark:text-white whitespace-nowrap">{formatValue(f, latest.mean)}</p>
+                      {cmp && meta(f).group !== 'Training' && <Verdict verdict={cmp.verdict} short />}
+                    </div>
                   </div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
-                    dots: each day · line: 7-day average · {s.length} days
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 mb-2 line-clamp-2">{meta(f).desc}</p>
                   <TrendChart field={f} series={s} domain={domain} />
                 </div>
               )
