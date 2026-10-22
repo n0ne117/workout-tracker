@@ -30,6 +30,16 @@ export default {
           950: 'rgb(var(--gray-950) / <alpha-value>)',
         },
       },
+      // Indeterminate progress: a third-width bar sweeping across its track.
+      keyframes: {
+        indeterminate: {
+          '0%':   { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(300%)' },
+        },
+      },
+      animation: {
+        indeterminate: 'indeterminate 1.2s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

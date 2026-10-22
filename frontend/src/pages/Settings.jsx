@@ -6,7 +6,7 @@ import {
   Upload, ArchiveRestore, HardDriveDownload, FileCheck2,
   FileWarning, FilePlus2
 } from 'lucide-react'
-import { formatDatetime } from '../utils/format'
+import { formatDatetime, formatBytes } from '../utils/format'
 import clsx from 'clsx'
 
 export default function Settings() {
@@ -213,25 +213,47 @@ function BackupSection() {
   const [restoreResult, setRestoreResult] = useState(null)
   const [restoreError, setRestoreError]   = useState(null)
   const restoreRef = useRef(null)
+  // { type, phase: 'preparing' | 'downloading' | 'done' | 'error', loaded, total, filename, error }
+  const [download, setDownload] = useState(null)
+  const downloading = download?.phase === 'preparing' || download?.phase === 'downloading'
 
   async function downloadBackup(type) {
+    // The server builds the whole archive before the first byte arrives, so
+    // there are two waits: "preparing" with no measure of progress, then the
+    // transfer, measured against Content-Length.
+    setDownload({ type, phase: 'preparing', loaded: 0, total: null })
     try {
       const res = await fetch(`/api/backup/${type}`)
-      if (!res.ok) throw new Error(res.statusText)
-      const blob = await res.blob()
+      if (!res.ok) throw new Error(res.statusText || `HTTP ${res.status}`)
+      const total = Number(res.headers.get('Content-Length')) || null
       const disposition = res.headers.get('Content-Disposition') || ''
-      const match = disposition.match(/filename="([^"]+)"/)
-      const filename = match ? match[1] : `${type}_backup.zip`
-      const url = URL.createObjectURL(blob)
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? `${type}_backup.zip`
+
+      const reader = res.body.getReader()
+      const chunks = []
+      let loaded = 0
+      setDownload({ type, phase: 'downloading', loaded, total, filename })
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+        loaded += value.length
+        setDownload({ type, phase: 'downloading', loaded, total, filename })
+      }
+
+      const url = URL.createObjectURL(new Blob(chunks, { type: 'application/zip' }))
       const a = document.createElement('a')
       a.href = url
       a.download = filename
       a.click()
       URL.revokeObjectURL(url)
+      setDownload({ type, phase: 'done', loaded, total: loaded, filename })
     } catch (e) {
-      alert(`Backup failed: ${e.message}`)
+      setDownload({ type, phase: 'error', error: e.message })
     }
   }
+
+  const downloadPct = download?.total ? Math.round((download.loaded / download.total) * 100) : null
 
   async function handleRestore(e) {
     const file = e.target.files?.[0]
@@ -278,9 +300,12 @@ function BackupSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button
           onClick={() => downloadBackup('workouts')}
-          className="btn-secondary justify-center gap-2 py-3"
+          disabled={downloading}
+          className="btn-secondary justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <HardDriveDownload size={16} />
+          {downloading && download.type === 'workouts'
+            ? <Loader2 size={16} className="animate-spin" />
+            : <HardDriveDownload size={16} />}
           <div className="text-left">
             <div className="font-medium">Backup Workouts</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 font-normal">Workouts + GPS tracks only</div>
@@ -288,15 +313,53 @@ function BackupSection() {
         </button>
         <button
           onClick={() => downloadBackup('full')}
-          className="btn-primary justify-center gap-2 py-3"
+          disabled={downloading}
+          className="btn-primary justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <HardDriveDownload size={16} />
+          {downloading && download.type === 'full'
+            ? <Loader2 size={16} className="animate-spin" />
+            : <HardDriveDownload size={16} />}
           <div className="text-left">
             <div className="font-medium">Backup Everything</div>
             <div className="text-xs text-blue-200 font-normal">Workouts, gear, races, challenges</div>
           </div>
         </button>
       </div>
+
+      {download && (
+        <div className={clsx(
+          'rounded-lg p-3 text-sm space-y-2',
+          download.phase === 'error'
+            ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+            : download.phase === 'done'
+              ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+              : 'bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300',
+        )}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="min-w-0 truncate">
+              {download.phase === 'preparing'   && 'Preparing backup — collecting workouts and GPS tracks…'}
+              {download.phase === 'downloading' && 'Downloading…'}
+              {download.phase === 'done'        && <>✓ Saved <span className="font-medium">{download.filename}</span></>}
+              {download.phase === 'error'       && `Backup failed: ${download.error}`}
+            </span>
+            {(download.phase === 'downloading' || download.phase === 'done') && (
+              <span className="flex-shrink-0 tabular-nums text-xs opacity-80">
+                {download.phase === 'done'
+                  ? formatBytes(download.loaded)
+                  : `${formatBytes(download.loaded)}${download.total ? ` / ${formatBytes(download.total)}` : ''}`}
+              </span>
+            )}
+          </div>
+          {downloading && (
+            <div className="h-1.5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+              {downloadPct === null
+                // No size yet (or none sent): a sliding bar says "working", not how far.
+                ? <div className="h-full w-1/3 bg-brand-500 rounded-full animate-indeterminate" />
+                : <div className="h-full bg-brand-500 transition-all duration-200" style={{ width: `${downloadPct}%` }} />}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Restore */}
       <div className="border-t border-gray-100 dark:border-gray-800 pt-4 space-y-3">

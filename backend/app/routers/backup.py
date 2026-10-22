@@ -3,7 +3,7 @@ import json
 import zipfile
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.cache import invalidate_stats_cache
 from app.database import get_db
@@ -126,7 +126,7 @@ def _challenge_to_dict(c: ChallengeItem) -> dict:
     }
 
 
-def _build_zip(payload: dict, filename: str) -> StreamingResponse:
+def _build_zip(payload: dict, filename: str) -> Response:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, data in payload.items():
@@ -136,9 +136,10 @@ def _build_zip(payload: dict, filename: str) -> StreamingResponse:
                 zf.writestr(name, data)
             else:
                 zf.writestr(name, json.dumps(data, ensure_ascii=False, indent=2))
-    buf.seek(0)
-    return StreamingResponse(
-        buf,
+    # The archive is complete in memory already; sending it whole sets
+    # Content-Length, which is what lets the UI show download progress.
+    return Response(
+        buf.getvalue(),
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
