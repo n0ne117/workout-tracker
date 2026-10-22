@@ -561,8 +561,12 @@ function IntervalsSection() {
   const [backfilling, setBackfilling] = useState(false)
   const [backfillStatus, setBackfillStatus] = useState(null)
   const backfillPollRef = useRef(null)
+  const importPollRef = useRef(null)
 
-  // Load saved state
+  // Both jobs run on the server and carry on when this page closes. The
+  // pollers only drive the progress display, so they stop with the page and
+  // start again from the status below when it reopens — otherwise each visit
+  // during a long import left one more interval polling in the background.
   useEffect(() => {
     api.get('/intervals/status').then(s => {
       setConnected(s.connected)
@@ -570,20 +574,32 @@ function IntervalsSection() {
       if (s.last_result) setResult(s.last_result)
       if (s.import_running) pollUntilDone()
     }).catch(() => {})
+    api.get('/intervals/backfill/status').then(s => {
+      if (s.running) {
+        setBackfilling(true)
+        setBackfillStatus(s)
+        pollBackfill()
+      }
+    }).catch(() => {})
+    return () => {
+      clearInterval(importPollRef.current)
+      clearInterval(backfillPollRef.current)
+    }
   }, [])
 
   function pollUntilDone() {
     setImporting(true)
-    const iv = setInterval(async () => {
+    clearInterval(importPollRef.current)
+    importPollRef.current = setInterval(async () => {
       try {
         const s = await api.get('/intervals/import/status')
         setProgress({ total: s.total || 0, done: s.done || 0 })
         if (!s.running) {
-          clearInterval(iv)
+          clearInterval(importPollRef.current)
           setImporting(false)
           setResult(s.last_result)
         }
-      } catch { clearInterval(iv); setImporting(false) }
+      } catch { clearInterval(importPollRef.current); setImporting(false) }
     }, 2000)
   }
 
@@ -622,6 +638,11 @@ function IntervalsSection() {
       setBackfillStatus({ last_result: { error: e.message } })
       return
     }
+    pollBackfill()
+  }
+
+  function pollBackfill() {
+    clearInterval(backfillPollRef.current)
     backfillPollRef.current = setInterval(async () => {
       try {
         const s = await api.get('/intervals/backfill/status')
