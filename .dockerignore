@@ -30,6 +30,11 @@ __pycache__/
 .venv/
 venv/
 
+# Tests run in CI before the build; the image only needs the app.
+backend/tests/
+backend/requirements-dev.txt
+.pytest_cache/
+
 # Docs and host-only assets contribute nothing to the runtime image.
 README.md
 CHANGELOG.md
