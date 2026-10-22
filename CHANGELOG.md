@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.0
+
+### Added
+
+- **Backup progress.** The backup buttons now show what is happening:
+  "Preparing" while the archive is built, then a progress bar with the size
+  while it downloads, then the saved file name.
+- **The workout list updates after a sync.** When Sync finds new workouts,
+  the list reloads by itself, keeping your filters.
+
 ## 1.5.2
 
 ### Fixed
