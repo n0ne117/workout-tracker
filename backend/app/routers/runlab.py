@@ -14,6 +14,7 @@ import logging
 
 from app.database import get_db
 from app.models import Workout, WorkoutMetrics, AppSettings, RaceEntry
+from app.services.timeutil import now_local   # started_at is local time
 
 router = APIRouter(prefix="/api/runlab", tags=["runlab"])
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ def patch_runlab_settings(payload: RunLabSettingsPatch, db: Session = Depends(ge
 
 @router.get("/summary")
 def get_summary(db: Session = Depends(get_db)):
-    today = datetime.utcnow().date()
+    today = now_local().date()
     day7_ago  = today - timedelta(days=7)
     day28_ago = today - timedelta(days=28)
     day42_ago = today - timedelta(days=42)
@@ -277,7 +278,7 @@ def get_pmc(range: str = "6m", db: Session = Depends(get_db)):
 
 @router.get("/balance")
 def get_balance(window: int = 28, db: Session = Depends(get_db)):
-    cutoff = datetime.utcnow() - timedelta(days=window)
+    cutoff = now_local() - timedelta(days=window)
 
     rows = (
         db.query(WorkoutMetrics.icu_hr_zone_times, Workout.started_at,
@@ -301,7 +302,7 @@ def get_balance(window: int = 28, db: Session = Depends(get_db)):
     zone_times = {f"z{i+1}": round(totals[i]) for i in range(5)}
 
     # Weekly volume — last 12 ISO weeks
-    twelve_weeks_ago = datetime.utcnow() - timedelta(weeks=12)
+    twelve_weeks_ago = now_local() - timedelta(weeks=12)
     vol_rows = (
         db.query(Workout.started_at, Workout.distance_meters)
         .filter(Workout.sport.in_(RUNNING_SPORTS))
@@ -321,7 +322,7 @@ def get_balance(window: int = 28, db: Session = Depends(get_db)):
     # Fill in all 12 weeks (even with 0)
     weekly_volume = []
     for i in range(12):
-        mon = (datetime.utcnow() - timedelta(weeks=11 - i)).date()
+        mon = (now_local() - timedelta(weeks=11 - i)).date()
         mon = mon - timedelta(days=mon.weekday())
         key = mon.isoformat()
         weekly_volume.append({"week_start": key, "km": round(week_map.get(key, 0.0), 1)})
@@ -422,7 +423,7 @@ def get_predictions(db: Session = Depends(get_db)):
     sett = _get_or_create_settings(db)
     targets = sett.runlab_target_distances or ["5k", "10k", "hm", "marathon", "wfl"]
 
-    cutoff = datetime.utcnow() - timedelta(days=180)   # 6 months
+    cutoff = now_local() - timedelta(days=180)   # 6 months
 
     all_runs = (
         db.query(Workout)
