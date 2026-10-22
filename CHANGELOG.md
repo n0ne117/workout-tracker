@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.8.0
+
+### Changed
+
+- **Health page: explanations and verdicts instead of "What moves
+  together".**
+  - Every metric says what it is, with what to look for behind the ⓘ
+    button.
+  - Values are judged against your own usual: **Better** (green) or
+    **Worse** (red) where a direction is good for nearly everyone,
+    plain higher/lower where it depends on your goal (weight). Changes
+    within your normal day-to-day ups and downs count as "about usual".
+  - New **This week vs your usual** summary: what moved this week, worse
+    first.
+
+### Fixed
+
+- Info popovers (Health and RunLab) no longer run off the edge of a phone
+  screen.
+
 ## 1.7.0
 
 ### Added
