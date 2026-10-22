@@ -26,6 +26,21 @@ def _tag(el) -> str:
     return el.tag.split("}")[-1] if "}" in el.tag else el.tag
 
 
+def _find(el, *paths):
+    """
+    The first of `paths` present under `el`, or None.
+
+    Not `el.find(a) or el.find(b)`: an element with no children is falsy, so a
+    leaf like <Value>142</Value> counted as missing and every heart rate and
+    cadence reading in a namespaced TCX file was dropped.
+    """
+    for path in paths:
+        found = el.find(path, NS)
+        if found is not None:
+            return found
+    return None
+
+
 def _text(el, path: str) -> Optional[str]:
     found = el.find(path, NS)
     return found.text.strip() if found is not None and found.text else None
@@ -72,21 +87,18 @@ def parse_tcx(content: bytes) -> dict:
     root = ET.fromstring(content)
 
     # Support both namespaced and bare TCX
-    activities_el = root.find("tcx:Activities", NS) or root.find("Activities")
+    activities_el = _find(root, "tcx:Activities", "Activities")
     if activities_el is None:
         raise ValueError("No <Activities> element found in TCX file")
 
-    activity_el = (
-        activities_el.find("tcx:Activity", NS)
-        or activities_el.find("Activity")
-    )
+    activity_el = _find(activities_el, "tcx:Activity", "Activity")
     if activity_el is None:
         raise ValueError("No <Activity> element found in TCX file")
 
     sport_raw = activity_el.attrib.get("Sport", "other").lower()
     sport = SPORT_MAP.get(sport_raw, "other")
 
-    id_el = activity_el.find("tcx:Id", NS) or activity_el.find("Id")
+    id_el = _find(activity_el, "tcx:Id", "Id")
     started_at = _parse_time(id_el.text.strip() if id_el is not None and id_el.text else None)
 
     # Aggregate across all laps
@@ -112,17 +124,11 @@ def parse_tcx(content: bytes) -> dict:
         if cal:
             total_calories += int(float(cal))
 
-        avg_hr_el = (
-            lap.find("tcx:AverageHeartRateBpm/tcx:Value", NS)
-            or lap.find("AverageHeartRateBpm/Value")
-        )
+        avg_hr_el = _find(lap, "tcx:AverageHeartRateBpm/tcx:Value", "AverageHeartRateBpm/Value")
         if avg_hr_el is not None and avg_hr_el.text:
             hr_values.append(int(float(avg_hr_el.text)))
 
-        max_hr_el = (
-            lap.find("tcx:MaximumHeartRateBpm/tcx:Value", NS)
-            or lap.find("MaximumHeartRateBpm/Value")
-        )
+        max_hr_el = _find(lap, "tcx:MaximumHeartRateBpm/tcx:Value", "MaximumHeartRateBpm/Value")
         if max_hr_el is not None and max_hr_el.text:
             max_hr = max(max_hr, int(float(max_hr_el.text)))
 
@@ -135,7 +141,7 @@ def parse_tcx(content: bytes) -> dict:
                 t_str = _text(tp, "tcx:Time") or _text(tp, "Time")
                 t = _parse_time(t_str)
 
-                pos = tp.find("tcx:Position", NS) or tp.find("Position")
+                pos = _find(tp, "tcx:Position", "Position")
                 lat = lon = None
                 if pos is not None:
                     lat_t = _text(pos, "tcx:LatitudeDegrees") or _text(pos, "LatitudeDegrees")
@@ -147,18 +153,15 @@ def parse_tcx(content: bytes) -> dict:
                 ele_t = _text(tp, "tcx:AltitudeMeters") or _text(tp, "AltitudeMeters")
                 ele = float(ele_t) if ele_t else None
 
-                hr_el = (
-                    tp.find("tcx:HeartRateBpm/tcx:Value", NS)
-                    or tp.find("HeartRateBpm/Value")
-                )
+                hr_el = _find(tp, "tcx:HeartRateBpm/tcx:Value", "HeartRateBpm/Value")
                 hr = int(float(hr_el.text)) if hr_el is not None and hr_el.text else None
 
-                cad_el = tp.find("tcx:Cadence", NS) or tp.find("Cadence")
+                cad_el = _find(tp, "tcx:Cadence", "Cadence")
                 cad = int(float(cad_el.text)) if cad_el is not None and cad_el.text else None
 
                 # Speed from extensions
                 speed = None
-                ext = tp.find("tcx:Extensions", NS) or tp.find("Extensions")
+                ext = _find(tp, "tcx:Extensions", "Extensions")
                 if ext is not None:
                     for child in ext.iter():
                         if _tag(child) in ("Speed", "speed"):
