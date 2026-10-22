@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.7.0
+
+### Added
+
+- **Health page.** Daily wellness from Intervals.icu — resting HR, HRV,
+  sleep, weight, steps, VO2max, SpO2 and everything else it records, much of
+  it from Apple Health — stored locally and shown as:
+  - latest values against your 28-day average,
+  - **what moves together**: the strongest relationships in the chosen range,
+    in plain words, with every day behind each one as a scatter plot. Days
+    are compared with your usual (4-week average), so slow drifts don't
+    count, and "the day after" pairs show how training carries into the
+    next day,
+  - a trend per metric, each day plus the 7-day average,
+  - every day as a table.
+  
+  The first sync after updating fetches your whole wellness history; after
+  that every sync keeps it current. The page also has its own Import and
+  Refresh buttons.
+
 ## 1.6.0
 
 ### Added
