@@ -1,4 +1,35 @@
+import { useSyncExternalStore } from 'react'
+
 const BASE = '/api'
+
+// ── Server reachability ──────────────────────────────────────────────────────
+// Several pages catch a failed request and simply render nothing, so with the
+// API down the app looked empty rather than broken. Every request reports in
+// here instead, and AppShell shows one banner for the whole app. nginx answers
+// 502/504 itself when the API process is gone; a TypeError is no network.
+
+let _unreachable = false
+const _listeners = new Set()
+let _probe = null
+
+function setUnreachable(value) {
+  if (value === _unreachable) return
+  _unreachable = value
+  _listeners.forEach(fn => fn())
+  // Nothing else may request anything while the banner is up, so check on
+  // our own until the server answers again.
+  clearInterval(_probe)
+  _probe = value
+    ? setInterval(() => fetch(`${BASE}/health`).then(r => r.ok && setUnreachable(false)).catch(() => {}), 10_000)
+    : null
+}
+
+export function useServerUnreachable() {
+  return useSyncExternalStore(
+    fn => { _listeners.add(fn); return () => _listeners.delete(fn) },
+    () => _unreachable,
+  )
+}
 
 async function request(method, path, body, isFormData = false) {
   const opts = {
@@ -8,7 +39,14 @@ async function request(method, path, body, isFormData = false) {
   if (body) {
     opts.body = isFormData ? body : JSON.stringify(body)
   }
-  const res = await fetch(`${BASE}${path}`, opts)
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, opts)
+  } catch (e) {
+    setUnreachable(true)
+    throw e
+  }
+  setUnreachable([502, 503, 504].includes(res.status))
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(err.detail || 'Request failed')

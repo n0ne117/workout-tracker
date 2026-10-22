@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   Activity, Trophy, BarChart2, Settings, Sun, Moon, RefreshCw, Bike, Flag,
-  CalendarDays, FlaskConical, CheckCircle, AlertCircle, X, MoreHorizontal,
+  CalendarDays, FlaskConical, CheckCircle, AlertCircle, X, MoreHorizontal, WifiOff,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useTheme } from '../hooks/useTheme'
 import { useIntervalsSync } from '../hooks/useIntervalsSync'
+import { useServerUnreachable } from '../hooks/useApi'
 
 /**
  * One shell for every screen size.
@@ -115,6 +116,25 @@ function SyncBanner({ sync }) {
   )
 }
 
+function OfflineBanner() {
+  const unreachable = useServerUnreachable()
+  if (!unreachable) return null
+  return (
+    <div
+      role="alert"
+      className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+        bg-amber-50 text-amber-800 border-b border-amber-200
+        dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800"
+    >
+      <WifiOff size={15} className="flex-shrink-0" />
+      <span>Can't reach the server — what you see may be incomplete.</span>
+      <button onClick={() => window.location.reload()} className="underline underline-offset-2 hover:no-underline">
+        Reload
+      </button>
+    </div>
+  )
+}
+
 export default function AppShell({ children }) {
   const { theme, toggle } = useTheme()
   const { pathname } = useLocation()
@@ -177,6 +197,7 @@ export default function AppShell({ children }) {
         </div>
       </header>
 
+      <OfflineBanner />
       <SyncBanner sync={sync} />
 
       <main
