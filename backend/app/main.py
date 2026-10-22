@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from app.database import init_db
 from app.routers import workouts, files, intervals, gear, challenges, race_calendar, backup, runlab
 
@@ -158,4 +159,20 @@ def _seed_challenges():
 
 @app.get("/api/health")
 def health():
+    """
+    Healthy means the database answers and its directory takes writes.
+
+    Docker's healthcheck and the UI's offline banner both read this; a bare
+    "ok" stayed green while /data was unwritable — after a failed chown, say —
+    and every save was failing.
+    """
+    from app.database import engine, DATABASE_URL, DATA_DIR
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT count(*) FROM workouts"))
+    except Exception as exc:  # noqa: BLE001 - any failure is the answer
+        return JSONResponse({"status": "error", "detail": f"database: {exc}"}, status_code=503)
+    if DATABASE_URL.startswith("sqlite") and not os.access(DATA_DIR, os.W_OK):
+        return JSONResponse({"status": "error", "detail": f"{DATA_DIR} is not writable"}, status_code=503)
     return {"status": "ok"}
