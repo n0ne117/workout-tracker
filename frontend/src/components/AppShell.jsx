@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   Activity, Trophy, BarChart2, Settings, Sun, Moon, RefreshCw, Bike, Flag,
-  CalendarDays, FlaskConical, CheckCircle, AlertCircle, X, MoreHorizontal, WifiOff,
+  CalendarDays, FlaskConical, CheckCircle, AlertCircle, X, MoreHorizontal, WifiOff, HeartPulse,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useTheme } from '../hooks/useTheme'
@@ -30,6 +30,7 @@ export const NAV_ITEMS = [
   { to: '/conqueror',     label: 'Conqueror',short: 'Conqueror',icon: Flag },
   { to: '/race-calendar', label: 'Race Cal', short: 'Calendar', icon: CalendarDays },
   { to: '/runlab',        label: 'RunLab',   short: 'RunLab',   icon: FlaskConical },
+  { to: '/health',        label: 'Health',   short: 'Health',   icon: HeartPulse },
   { to: '/settings',      label: 'Settings', short: 'Settings', icon: Settings },
 ]
 
