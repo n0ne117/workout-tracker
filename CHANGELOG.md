@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.5.1
+
+### Fixed
+
+- **Leaving Settings during an import left its progress poller running.**
+  Every visit added another one. They now stop with the page, and the
+  metrics backfill progress picks up again when you come back, as the
+  import progress already did.
+- **With the server unreachable, pages looked empty instead of broken.**
+  Races, Stats and others showed "nothing yet". A banner now says the
+  server can't be reached and disappears once it answers again.
+
+### Changed
+
+- Dependencies updated within their current major versions: FastAPI,
+  Starlette, uvicorn, SQLAlchemy, pydantic, Vite, PostCSS. The frontend
+  now builds on Node 22, and the release workflow uses current action
+  versions.
+
 ## 1.5.0
 
 **Before updating:** take a backup, and make sure `TZ` is set to your
