@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, JSON, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -149,6 +149,21 @@ class WorkoutMetrics(Base):
     icu_efficiency_factor = Column(Float, nullable=True)
     icu_decoupling      = Column(Float, nullable=True)
     updated_at          = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class WellnessDay(Base):
+    """
+    One day of Intervals.icu wellness data — resting HR, HRV, sleep, weight,
+    steps and the rest, much of it relayed from Apple Health.
+
+    Stored whole as JSON rather than one column per field: Intervals adds
+    fields over time, and the page shows whatever numeric fields are present.
+    """
+    __tablename__ = "wellness"
+
+    date       = Column(Date, primary_key=True)
+    data       = Column(JSON, nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
 class AppSettings(Base):

@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.database import init_db
-from app.routers import workouts, files, intervals, gear, challenges, race_calendar, backup, runlab
+from app.routers import workouts, files, intervals, gear, challenges, race_calendar, backup, runlab, wellness
 
 
 class _SafeEncoder(json.JSONEncoder):
@@ -102,6 +102,7 @@ app.include_router(challenges.router)
 app.include_router(race_calendar.router)
 app.include_router(backup.router)
 app.include_router(runlab.router)
+app.include_router(wellness.router)
 
 
 SEED_PATH = Path(os.environ.get("DATA_DIR", "/data")) / "challenges_seed.json"

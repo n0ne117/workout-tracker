@@ -39,6 +39,31 @@ def _get_or_create_settings(db: Session) -> AppSettings:
     return s
 
 
+def _sync_wellness(api_key: str, athlete_id: str, oldest: str, newest: str):
+    """
+    Refresh wellness for the same window as the workouts — or the whole
+    history the first time, so the Health page has something to show.
+    Best effort: a wellness failure must not fail the workout import.
+    """
+    from datetime import date
+    from app.database import SessionLocal
+    from app.models import WellnessDay
+    from app.services import wellness_service
+
+    wdb = SessionLocal()
+    try:
+        start = (date.fromisoformat(oldest) if wdb.query(WellnessDay).first()
+                 else wellness_service.history_start(wdb))
+        return wellness_service.sync(wdb, api_key, athlete_id, start, date.fromisoformat(newest))
+    except Exception as e:
+        logger.warning(f"Wellness sync failed: {e}")
+        _debug_log.append(f"Wellness sync failed: {e}")
+        wdb.rollback()
+        return None
+    finally:
+        wdb.close()
+
+
 def _execute_import(api_key: str, athlete_id: str, oldest: str, newest: str):
     """
     Run one import to completion. Blocking — call it on a worker thread.
@@ -163,12 +188,14 @@ def _execute_import(api_key: str, athlete_id: str, oldest: str, newest: str):
             _import_status["done"] += 1
         idb.close()
         cancelled = _import_status["cancel"]
-        _debug_log.append(f"--- Done: imported={imported} skipped={skipped} errors={errors}" +
-                          (" CANCELLED" if cancelled else ""))
+        wellness_days = None if cancelled else _sync_wellness(api_key, athlete_id, oldest, newest)
+        _debug_log.append(f"--- Done: imported={imported} skipped={skipped} errors={errors}"
+                          f" wellness_days={wellness_days}" + (" CANCELLED" if cancelled else ""))
         _import_status["last_result"] = {
             "imported": imported,
             "skipped": skipped,
             "errors": errors,
+            "wellness_days": wellness_days,
             "error": "Cancelled by user" if cancelled else None,
         }
     except Exception as e:

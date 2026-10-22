@@ -22,7 +22,7 @@ from app.database import SessionLocal, engine, init_db
 from app.main import app
 
 TABLES = ("workout_metrics", "workout_gear", "workouts", "gear_items",
-          "race_calendar", "challenges")
+          "race_calendar", "challenges", "wellness", "app_settings")
 
 
 @pytest.fixture(scope="session")
