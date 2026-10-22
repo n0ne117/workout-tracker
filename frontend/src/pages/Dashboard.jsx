@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import WorkoutTable, { loadCollapsed, saveCollapsed, groupWorkouts, defaultCollapsed } from '../components/WorkoutTable'
 import FilterBar from '../components/FilterBar'
 import { api, buildWorkoutQuery } from '../hooks/useApi'
+import { WORKOUTS_CHANGED } from '../hooks/useIntervalsSync'
 import { isoDate } from '../utils/format'
 import { Loader2, ListChecks } from 'lucide-react'
 import BulkActionBar from '../components/BulkActionBar'
@@ -57,6 +58,12 @@ export default function Dashboard() {
     const t = setTimeout(load, filters.search ? 250 : 0)
     return () => clearTimeout(t)
   }, [load, filters.search])
+
+  // A sync from the header that found new workouts: show them.
+  useEffect(() => {
+    window.addEventListener(WORKOUTS_CHANGED, load)
+    return () => window.removeEventListener(WORKOUTS_CHANGED, load)
+  }, [load])
 
   // Drop selections when the filters change: those ids are no longer on
   // screen, and acting on rows you cannot see is how bulk tools go wrong.

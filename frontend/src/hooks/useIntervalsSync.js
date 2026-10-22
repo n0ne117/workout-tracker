@@ -12,6 +12,10 @@ import { api } from './useApi'
  */
 const POLL_MS = 2000
 
+// Fired on window when a sync brought in new workouts, so whichever page is
+// showing them can reload. The sync button lives in the shell, not the page.
+export const WORKOUTS_CHANGED = 'workouts-changed'
+
 export function useIntervalsSync({ autoDismissMs = 5000, daysBack = 30 } = {}) {
   const [state, setState]       = useState('idle')
   const [progress, setProgress] = useState({ total: 0, done: 0 })
@@ -68,6 +72,10 @@ export function useIntervalsSync({ autoDismissMs = 5000, daysBack = 30 } = {}) {
         const r = s.last_result || {}
         setResult(r)
         setState(r.error ? 'error' : 'done')
+        if (r.imported > 0) {
+          api.invalidateAll()
+          window.dispatchEvent(new CustomEvent(WORKOUTS_CHANGED, { detail: r }))
+        }
         if (autoDismissMs) {
           dismissRef.current = setTimeout(reset, r.error ? autoDismissMs + 3000 : autoDismissMs)
         }
