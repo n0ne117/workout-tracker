@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.2
+
+### Fixed
+
+- **TCX imports had no heart rate or cadence.** A parser quirk treated every
+  reading as missing. Files imported from now on keep them; workouts already
+  imported from TCX need re-importing to get them.
+- **The gear picker could miss gear added a moment ago** on the Gear page or
+  restored from a backup.
+- **Gear detail kept the previous item's activities** when moving straight
+  from one gear item to another.
+- **RunLab's "today" lagged behind** for the first hour or two after midnight.
+- **The health check said "ok" even when nothing could be saved**, for
+  example with an unwritable data folder. Docker now sees it as unhealthy.
+
+### Changed
+
+- Backend tests now live in the repository and run before every release; a
+  failing test stops the image from being built.
+
 ## 1.5.1
 
 ### Fixed
