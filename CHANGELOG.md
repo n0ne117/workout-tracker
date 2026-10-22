@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.5.0
+
+**Before updating:** take a backup, and make sure `TZ` is set to your
+timezone. On first start this version converts the start times of
+file-imported workouts (see below), once, using `TZ`. With `TZ` unset or
+UTC nothing is converted.
+
+### Fixed
+
+- **A new workout could show a deleted one's training data.** Deleting a
+  workout left its metrics row behind, and SQLite gives the freed id to the
+  next workout, which then showed someone else's HR zones and training load.
+  Deletes now remove metrics too, and leftover rows are cleaned up on start.
+- **Restore lost data.** A workouts-only restore dropped every gear link, no
+  backup included metrics, and the dashboard showed pre-restore numbers until
+  the next change. Backups now carry metrics and gear links, and restoring an
+  old backup without links says so instead of failing silently.
+- **File imports were stored in UTC.** Everything else is local time, so FIT,
+  GPX, TCX and KML workouts showed hours off and never matched their
+  Intervals.icu copy. New imports are converted (FIT uses the watch's own
+  offset), existing ones are converted once on start, and re-uploading a
+  workout that is already stored is refused. Converted workouts that match an
+  Intervals copy now show up under "Duplicates only".
+- **Off-by-one dates.** The default month in the list and the Stats heatmap
+  were a day early for anyone east of UTC.
+- **Search results could arrive out of order** and show matches for an
+  earlier, shorter search term.
+- **Large backups could not be restored.** Uploads over 100 MB failed with
+  "Unexpected token '<'"; the restore limit is now 2 GB.
+- **Google Earth KML tracks** were rejected as having no track.
+
+### Security
+
+- Any web page open in a browser on the same network could read or delete
+  the data, because the API allowed every origin. Cross-origin access is now
+  off (opt in with `CORS_ORIGINS`), and writes from another site are refused.
+
+### Changed
+
+- The gear activity list and race predictions no longer load GPS tracks they
+  never show.
+- The release image is smoke-tested before it is published, and `:latest`
+  only moves for the newest stable version.
+- Removed the unused Garmin Connect code, six unused Python packages and the
+  old two-container build files. `npm run dev` proxies to `localhost:8000`
+  again (`VITE_API_TARGET` to change it).
+
 ## 1.4.2
 
 ### Fixed
