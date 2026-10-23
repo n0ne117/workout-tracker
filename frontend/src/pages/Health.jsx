@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  HeartPulse, Loader2, RefreshCw, Table2, ChevronDown,
-  CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus,
-} from 'lucide-react'
+import { HeartPulse, Loader2, RefreshCw, Table2, ChevronDown, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'
 import { WELLNESS_CHANGED } from '../hooks/useIntervalsSync'
@@ -12,7 +9,7 @@ import {
   GROUPS, HEADLINE, meta, formatValue, rollingMean, compareToUsual, parseDay, addDays,
 } from '../utils/wellness'
 import TrendChart from '../components/health/TrendChart'
-import InfoTip from '../components/runlab/InfoTip'
+import { Verdict, Explainer } from '../components/health/Verdict'
 
 const RANGES = [
   { key: '30d', label: '30 days', days: 30 },
@@ -205,34 +202,6 @@ function HealthBody({ data, days: rangeDays }) {
   </>
 }
 
-// ── Verdicts ──────────────────────────────────────────────────────────────────
-
-const VERDICT = {
-  better: { text: 'Better than usual', icon: CheckCircle2, cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-  worse:  { text: 'Worse than usual',  icon: AlertTriangle, cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-  higher: { text: 'Higher than usual', icon: ArrowUp,  cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
-  lower:  { text: 'Lower than usual',  icon: ArrowDown, cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
-  usual:  { text: 'About usual',       icon: Minus,    cls: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
-}
-
-/** Icon and words with the colour, so the verdict never rests on colour alone. */
-function Verdict({ verdict, short = false }) {
-  const v = VERDICT[verdict]
-  const Icon = v.icon
-  return (
-    <span className={clsx('badge gap-1 whitespace-nowrap', v.cls)}>
-      <Icon size={12} />
-      {short ? v.text.replace(' than usual', '') : v.text}
-    </span>
-  )
-}
-
-function Explainer({ field }) {
-  const m = meta(field)
-  const text = [m.desc, m.good].filter(Boolean).join(' ')
-  return text ? <InfoTip text={text} /> : null
-}
-
 function signedDelta(field, delta) {
   return `${delta >= 0 ? '+' : '−'}${formatValue(field, Math.abs(delta), { unit: false })}`
 }
@@ -250,10 +219,11 @@ function Headline({ series, fields }) {
         // The latest day against the 28 before it.
         const cmp = compareToUsual(s, f, { recent: 1 })
         return (
-          <div key={f} className="card p-4 flex flex-col">
+          <Link key={f} to={`/health/${f}`}
+                className="card p-4 flex flex-col group hover:border-brand-300 dark:hover:border-brand-700 transition-colors">
             <div className="flex items-start justify-between gap-2">
               <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{meta(f).label}</p>
-              <Explainer field={f} />
+              <ChevronRight size={15} className="text-gray-300 group-hover:text-brand-500 dark:text-gray-600 transition-colors" />
             </div>
             <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white leading-none">
               {formatValue(f, latest.value, { unit: false })}
@@ -266,7 +236,7 @@ function Headline({ series, fields }) {
             <div className="mt-auto pt-2.5">
               {cmp ? <Verdict verdict={cmp.verdict} /> : <span className="text-xs text-gray-400">No baseline yet</span>}
             </div>
-          </div>
+          </Link>
         )
       })}
     </div>
@@ -358,7 +328,9 @@ function Trends({ series, fields, domain }) {
                 <div key={f} className="card p-4 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1.5 min-w-0">
-                      <span className="truncate">{meta(f).label}</span>
+                      <Link to={`/health/${f}`} className="truncate hover:text-brand-600 dark:hover:text-brand-400 hover:underline underline-offset-2">
+                        {meta(f).label}
+                      </Link>
                       <Explainer field={f} />
                     </p>
                     <div className="flex items-center gap-2 flex-shrink-0">

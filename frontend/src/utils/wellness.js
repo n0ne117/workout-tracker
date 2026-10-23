@@ -172,11 +172,15 @@ export function displayValue(field, raw) {
   return m.scale ? raw * m.scale : raw
 }
 
-export function formatValue(field, raw, { unit = true } = {}) {
+/**
+ * `average: true` keeps one decimal even on a whole number, so a column of
+ * averages doesn't mix "51" with "51.2".
+ */
+export function formatValue(field, raw, { unit = true, average = false } = {}) {
   const v = displayValue(field, raw)
   if (v == null || Number.isNaN(v)) return '—'
   const m = meta(field)
-  const digits = m.digits ?? (Math.abs(v) >= 100 || Number.isInteger(v) ? 0 : 1)
+  const digits = m.digits ?? (Math.abs(v) >= 100 || (!average && Number.isInteger(v)) ? 0 : 1)
   const text = v.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })
   return unit && m.unit ? `${text} ${m.unit}` : text
 }
@@ -242,4 +246,185 @@ export function compareToUsual(series, field, { recent = 7, baseline = 28 } = {}
   else if (!better) verdict = delta > 0 ? 'higher' : 'lower'
   else verdict = (delta > 0) === (better === 'higher') ? 'better' : 'worse'
   return { current, usual, delta, verdict, days: now.length }
+}
+
+// ── Detail view: history statistics and insights ────────────────────────────
+
+const DAY_MS = 86_400_000
+const sdOf = xs => { const m = mean(xs); return Math.sqrt(mean(xs.map(v => (v - m) ** 2))) }
+
+export const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+/** Values in [from, to] (inclusive ISO dates). */
+function between(series, from, to) {
+  return series.filter(p => p.date >= from && p.date <= to).map(p => p.value)
+}
+
+/**
+ * Each day's "usual range": the 4 weeks before it, average ± one typical
+ * swing (standard deviation). Roughly two days in three fall inside it.
+ */
+export function usualBand(series, window = 28) {
+  const out = []
+  const recent = []
+  for (const p of series) {
+    const t = parseDay(p.date).getTime()
+    while (recent.length && t - recent[0].t > window * DAY_MS) recent.shift()
+    if (recent.length >= 7) {
+      const vs = recent.map(r => r.v)
+      const m = mean(vs), sd = sdOf(vs)
+      out.push({ date: p.date, lo: m - sd, hi: m + sd })
+    }
+    recent.push({ t, v: p.value })
+  }
+  return out
+}
+
+/** Best and worst day — or highest and lowest, for metrics without a good direction. */
+export function records(series, field) {
+  if (!series.length) return null
+  let max = series[0], min = series[0]
+  for (const p of series) {
+    if (p.value > max.value) max = p
+    if (p.value < min.value) min = p
+  }
+  const better = meta(field).better
+  if (better === 'higher') return [{ label: 'Best', ...max, tone: 'better' }, { label: 'Worst', ...min, tone: 'worse' }]
+  if (better === 'lower')  return [{ label: 'Best', ...min, tone: 'better' }, { label: 'Worst', ...max, tone: 'worse' }]
+  return [{ label: 'Highest', ...max, tone: 'neutral' }, { label: 'Lowest', ...min, tone: 'neutral' }]
+}
+
+/** Calendar-month averages, placed mid-month so they read as a line. */
+export function monthlyMeans(series) {
+  const months = new Map()
+  for (const p of series) {
+    const key = p.date.slice(0, 7)
+    if (!months.has(key)) months.set(key, [])
+    months.get(key).push(p.value)
+  }
+  return [...months].map(([key, vs]) => ({ date: `${key}-15`, value: mean(vs), mean: mean(vs), n: vs.length }))
+}
+
+/** Average per weekday, Monday first. */
+export function weekdayMeans(series) {
+  const buckets = WEEKDAYS.map(() => [])
+  for (const p of series) buckets[(parseDay(p.date).getDay() + 6) % 7].push(p.value)
+  return buckets.map((vs, i) => ({ day: WEEKDAYS[i], mean: vs.length ? mean(vs) : null, n: vs.length }))
+}
+
+/** 'better' | 'worse' | 'neutral' for a change of `delta`. */
+function tone(field, delta) {
+  const better = meta(field).better
+  if (!better || delta === 0) return 'neutral'
+  return (delta > 0) === (better === 'higher') ? 'better' : 'worse'
+}
+
+function changeWords(field, delta) {
+  const amount = formatValue(field, Math.abs(delta))
+  return delta > 0 ? `${amount} higher` : `${amount} lower`
+}
+
+/**
+ * The value on the day after rest days, ordinary training days and hard
+ * days (the top quarter of training loads). Null unless each group has
+ * enough days to mean something.
+ */
+export function trainingEffect(days, field) {
+  const byDate = new Map(days.map(d => [d.date, d]))
+  const loads = days.map(d => d.trainingLoad).filter(v => v > 0).sort((a, b) => a - b)
+  if (loads.length < 12) return null
+  const hardFrom = loads[Math.floor(loads.length * 0.75)]
+  const groups = { rest: [], moderate: [], hard: [] }
+  for (const d of days) {
+    const v = d[field]
+    const load = byDate.get(addDays(d.date, -1))?.trainingLoad
+    if (v == null || load == null) continue
+    groups[load === 0 ? 'rest' : load >= hardFrom ? 'hard' : 'moderate'].push(v)
+  }
+  if (groups.rest.length < 8 || groups.hard.length < 8) return null
+  const summary = vs => (vs.length ? { mean: mean(vs), n: vs.length } : null)
+  return { hardFrom, rest: summary(groups.rest), moderate: summary(groups.moderate), hard: summary(groups.hard) }
+}
+
+/**
+ * Plain-language findings about one metric's history, each with a tone so
+ * the page can mark it better / worse / neutral.
+ */
+export function insights(series, days, field) {
+  if (series.length < 14) return []
+  const out = []
+  const label = meta(field).label
+  const last = series[series.length - 1].date
+  const spread = sdOf(series.map(p => p.value))
+  const notable = delta => Math.abs(delta) >= spread * 0.3
+
+  // 1. Now against three months ago, 30-day windows.
+  const now30 = between(series, addDays(last, -29), last)
+  const then30 = between(series, addDays(last, -119), addDays(last, -90))
+  if (now30.length >= 10 && then30.length >= 10) {
+    const delta = mean(now30) - mean(then30)
+    out.push(notable(delta)
+      ? { tone: tone(field, delta), text: `Your 30-day average is ${changeWords(field, delta)} than three months ago (${formatValue(field, mean(then30))} → ${formatValue(field, mean(now30))}).` }
+      : { tone: 'neutral', text: `Your 30-day average is about where it was three months ago (${formatValue(field, mean(now30))}).` })
+  }
+
+  // 2. Against the same time last year.
+  const lastYear = between(series, addDays(last, -394), addDays(last, -365))
+  if (now30.length >= 10 && lastYear.length >= 10) {
+    const delta = mean(now30) - mean(lastYear)
+    out.push(notable(delta)
+      ? { tone: tone(field, delta), text: `Compared with this time last year you are ${changeWords(field, delta)} (${formatValue(field, mean(lastYear))} then).` }
+      : { tone: 'neutral', text: `About the same as this time last year (${formatValue(field, mean(lastYear))} then).` })
+  }
+
+  // 3. How settled the last 90 days were.
+  const band = new Map(usualBand(series).map(b => [b.date, b]))
+  const recent = series.filter(p => p.date > addDays(last, -90) && band.has(p.date))
+  if (recent.length >= 20) {
+    let inside = 0, above = 0, below = 0
+    for (const p of recent) {
+      const b = band.get(p.date)
+      if (p.value > b.hi) above++
+      else if (p.value < b.lo) below++
+      else inside++
+    }
+    const better = meta(field).better
+    const worse = better === 'higher' ? below : better === 'lower' ? above : null
+    const pct = Math.round((inside / recent.length) * 100)
+    out.push({
+      tone: 'neutral',
+      text: `Over the last 90 days, ${pct} % of days were within your usual range` +
+        (worse != null ? `; ${worse} day${worse === 1 ? ' was' : 's were'} clearly worse.` : ` (${above} above, ${below} below).`),
+    })
+  }
+
+  // 4. What training the day before does to it.
+  if (meta(field).group !== 'Training') {
+    const effect = trainingEffect(days, field)
+    if (effect) {
+      const delta = effect.hard.mean - effect.rest.mean
+      out.push(notable(delta)
+        ? { tone: tone(field, delta),
+            text: `The day after hard training (load ${Math.round(effect.hardFrom)}+), ${label} averages ${formatValue(field, effect.hard.mean)} — ${changeWords(field, delta)} than after a rest day (${formatValue(field, effect.rest.mean)}).` }
+        : { tone: 'neutral', text: `Hard training barely shows in the next day's ${label}: ${formatValue(field, effect.hard.mean)} after hard days, ${formatValue(field, effect.rest.mean)} after rest days.` })
+    }
+  }
+
+  // 5. Weekday rhythm, over the last year.
+  const week = weekdayMeans(series.filter(p => p.date > addDays(last, -365))).filter(w => w.n >= 4)
+  if (week.length === 7) {
+    const sorted = [...week].sort((a, b) => a.mean - b.mean)
+    const lo = sorted[0], hi = sorted[6]
+    if (notable(hi.mean - lo.mean)) {
+      const better = meta(field).better
+      const [best, worst] = better === 'lower' ? [lo, hi] : [hi, lo]
+      out.push({
+        tone: 'neutral',
+        text: better
+          ? `${best.day}s are usually your best (${formatValue(field, best.mean)}), ${worst.day}s your worst (${formatValue(field, worst.mean)}).`
+          : `Highest on ${hi.day}s (${formatValue(field, hi.mean)}), lowest on ${lo.day}s (${formatValue(field, lo.mean)}).`,
+      })
+    }
+  }
+  return out
 }

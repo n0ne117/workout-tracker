@@ -11,6 +11,7 @@ import Conqueror from './pages/Conqueror'
 import RaceCalendar from './pages/RaceCalendar'
 import RunLab from './pages/RunLab'
 import Health from './pages/Health'
+import HealthMetric from './pages/HealthMetric'
 import More from './pages/More'
 
 /**
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/race-calendar" element={<RaceCalendar />} />
           <Route path="/runlab"        element={<RunLab />} />
           <Route path="/health"        element={<Health />} />
+          <Route path="/health/:field" element={<HealthMetric />} />
           <Route path="/settings"      element={<Settings />} />
           <Route path="/more"          element={<More />} />
           <Route path="*"              element={<Navigate to="/" replace />} />
