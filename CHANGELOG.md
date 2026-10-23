@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.9.0
+
+### Added
+
+- **A page per health metric.** Click a card at the top of the Health page
+  (or a trend card's title) to see:
+  - what the number means and what to look for,
+  - latest, 7-day, usual and 1-year averages, plus your best and worst day,
+  - **what stands out**: against three months ago and this time last year,
+    how often you were in your usual range, what hard training does to it the
+    next day, and your best and worst weekday,
+  - the full history with your usual range shaded, monthly averages, and a
+    weekday pattern.
+
 ## 1.8.0
 
 ### Changed
