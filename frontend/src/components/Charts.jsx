@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useCallback } from 'react'
-import { cumulativeKm } from '../utils/track'
+import { cumulativeKm, trackAxis, axisUnit, formatAxis } from '../utils/track'
 
 // Matches PaceChart: compact line charts at 180px CSS height
 const W = 800
@@ -26,7 +26,7 @@ function nearestPoint(sampled, distKm) {
 function buildTrackData(trackPoints, field, transform, filterFn) {
   if (!trackPoints?.length) return null
   const pts = []
-  const km = cumulativeKm(trackPoints)
+  const { xs: km } = trackAxis(trackPoints)
   trackPoints.forEach((p, i) => {
     const raw = p[field]
     if (km[i] == null || raw == null) return
@@ -68,6 +68,7 @@ function DesktopLineChart({
   const svgRef     = useRef(null)
   const wrapperRef = useRef(null)
   const [localHover, setLocalHover] = useState(null)
+  const axis = axisUnit(trackPoints)
 
   const data = useMemo(
     () => buildTrackData(trackPoints, field, transform, filterFn),
@@ -131,7 +132,7 @@ function DesktopLineChart({
         <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
           {headerPt ? (
             <span className={`font-semibold ${localHover ? '' : 'opacity-60'}`} style={{ color }}>
-              {formatVal(headerPt.val)} {unit} · {headerPt.d.toFixed(2)} km
+              {formatVal(headerPt.val)} {unit} · {formatAxis(headerPt.d, axis)}
             </span>
           ) : (
             <span>avg {formatVal((minVal + maxVal) / 2)} · max {formatVal(maxVal)} {unit}</span>
@@ -161,7 +162,7 @@ function DesktopLineChart({
                 <text x={scaleX(v)} y={INNER_H + 14} textAnchor="middle" fontSize={11} fill="currentColor" className="text-gray-400 dark:text-gray-500">{v}</text>
               </g>
             ))}
-            <text x={INNER_W / 2} y={INNER_H + 28} textAnchor="middle" fontSize={10} fill="currentColor" className="text-gray-400 dark:text-gray-500">km</text>
+            <text x={INNER_W / 2} y={INNER_H + 28} textAnchor="middle" fontSize={10} fill="currentColor" className="text-gray-400 dark:text-gray-500">{axis}</text>
             <polygon points={fillPoints} fill={`url(#${gradId})`} clipPath={`url(#${clipId})`} />
             <polyline points={polyPoints} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" clipPath={`url(#${clipId})`} />
             <line x1={0} x2={INNER_W} y1={INNER_H} y2={INNER_H} stroke="currentColor" className="text-gray-300 dark:text-gray-600" strokeWidth={1} />
@@ -177,13 +178,13 @@ function DesktopLineChart({
         {localHover && (
           <div className="pointer-events-none absolute z-10 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-900/90 dark:bg-gray-950/90 whitespace-nowrap shadow-lg"
             style={{ left: localHover.mouseX, top: localHover.mouseY, transform: `translate(${flipLeft ? 'calc(-100% - 12px)' : '12px'}, -50%)` }}>
-            {formatVal(localHover.pt.val)} {unit} · {localHover.pt.d.toFixed(2)} km
+            {formatVal(localHover.pt.val)} {unit} · {formatAxis(localHover.pt.d, axis)}
           </div>
         )}
         {extPt && extTipX != null && (
           <div className="pointer-events-none absolute z-10 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-900/75 dark:bg-gray-950/75 whitespace-nowrap shadow-lg"
             style={{ left: extTipX, top: extTipY, transform: `translate(${extFlipLeft ? 'calc(-100% - 12px)' : '12px'}, -50%)` }}>
-            {formatVal(extPt.val)} {unit} · {extPt.d.toFixed(2)} km
+            {formatVal(extPt.val)} {unit} · {formatAxis(extPt.d, axis)}
           </div>
         )}
       </div>
@@ -193,13 +194,14 @@ function DesktopLineChart({
 
 // ── Heart Rate ─────────────────────────────────────────────────────────────────
 export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
+  const axis = axisUnit(trackPoints)
   const svgRef = useRef(null); const wrapperRef = useRef(null)
   const [localHover, setLocalHover] = useState(null)
 
   const data = useMemo(() => {
     if (!trackPoints?.length) return null
     const pts = []
-    const km = cumulativeKm(trackPoints)
+    const { xs: km } = trackAxis(trackPoints)
     trackPoints.forEach((p, i) => { if (km[i] != null && p.hr != null) pts.push({ d: km[i], hr: p.hr }) })
     if (pts.length < 2) return null
 
@@ -262,7 +264,7 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Heart Rate</h3>
         <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
           {headerPt ? (
-            <><span className={`font-semibold ${localHover ? 'text-red-500' : 'text-red-400/70'}`}>{headerPt.hr} bpm</span><span>{headerPt.d.toFixed(2)} km</span></>
+            <><span className={`font-semibold ${localHover ? 'text-red-500' : 'text-red-400/70'}`}>{headerPt.hr} bpm</span><span>{formatAxis(headerPt.d, axis)}</span></>
           ) : (
             <><span>avg {avgHr} bpm</span><span>max {trueMax} bpm</span></>
           )}
@@ -291,7 +293,7 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
                 <text x={scaleX(v)} y={INNER_H + 14} textAnchor="middle" fontSize={11} fill="currentColor" className="text-gray-400 dark:text-gray-500">{v}</text>
               </g>
             ))}
-            <text x={INNER_W / 2} y={INNER_H + 28} textAnchor="middle" fontSize={10} fill="currentColor" className="text-gray-400 dark:text-gray-500">km</text>
+            <text x={INNER_W / 2} y={INNER_H + 28} textAnchor="middle" fontSize={10} fill="currentColor" className="text-gray-400 dark:text-gray-500">{axis}</text>
             <polygon points={[`0,${INNER_H}`, ...sampled.map(p => `${scaleX(p.d).toFixed(1)},${scaleY(p.hr).toFixed(1)}`), `${scaleX(sampled[sampled.length-1].d).toFixed(1)},${INNER_H}`].join(' ')}
               fill="url(#dtHrGrad)" clipPath="url(#dtHrClip)" />
             <polyline points={sampled.map(p => `${scaleX(p.d).toFixed(1)},${scaleY(p.hr).toFixed(1)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" clipPath="url(#dtHrClip)" />
@@ -308,13 +310,13 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
         {localHover && (
           <div className="pointer-events-none absolute z-10 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-900/90 dark:bg-gray-950/90 whitespace-nowrap shadow-lg"
             style={{ left: localHover.mouseX, top: localHover.mouseY, transform: `translate(${flipLeft ? 'calc(-100% - 12px)' : '12px'}, -50%)` }}>
-            {localHover.pt.hr} bpm · {localHover.pt.d.toFixed(2)} km
+            {localHover.pt.hr} bpm · {formatAxis(localHover.pt.d, axis)}
           </div>
         )}
         {extPt && extTipX != null && (
           <div className="pointer-events-none absolute z-10 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-900/75 dark:bg-gray-950/75 whitespace-nowrap shadow-lg"
             style={{ left: extTipX, top: extTipY, transform: `translate(${extFlipLeft ? 'calc(-100% - 12px)' : '12px'}, -50%)` }}>
-            {extPt.hr} bpm · {extPt.d.toFixed(2)} km
+            {extPt.hr} bpm · {formatAxis(extPt.d, axis)}
           </div>
         )}
       </div>
@@ -324,13 +326,14 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
 
 // ── Elevation ──────────────────────────────────────────────────────────────────
 export function ElevationChart({ trackPoints, hoverDist, onHoverChange }) {
+  const axis = axisUnit(trackPoints)
   const svgRef = useRef(null); const wrapperRef = useRef(null)
   const [localHover, setLocalHover] = useState(null)
 
   const data = useMemo(() => {
     if (!trackPoints?.length) return null
     const pts = []
-    const km = cumulativeKm(trackPoints)
+    const { xs: km } = trackAxis(trackPoints)
     trackPoints.forEach((p, i) => { if (km[i] != null && p.ele != null) pts.push({ d: km[i], ele: p.ele }) })
     if (pts.length < 10) return null
     const step = Math.ceil(pts.length / 600)
@@ -387,7 +390,7 @@ export function ElevationChart({ trackPoints, hoverDist, onHoverChange }) {
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Elevation</h3>
         <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
           {headerPt ? (
-            <><span className={`font-semibold ${localHover ? 'text-green-500' : 'text-green-400/70'}`}>{Math.round(headerPt.ele)} m</span><span>{headerPt.d.toFixed(2)} km</span></>
+            <><span className={`font-semibold ${localHover ? 'text-green-500' : 'text-green-400/70'}`}>{Math.round(headerPt.ele)} m</span><span>{formatAxis(headerPt.d, axis)}</span></>
           ) : (
             <><span>min {Math.round(minEle)} m</span><span>max {Math.round(maxEle)} m</span></>
           )}
@@ -416,7 +419,7 @@ export function ElevationChart({ trackPoints, hoverDist, onHoverChange }) {
                 <text x={scaleX(v)} y={INNER_H + 14} textAnchor="middle" fontSize={11} fill="currentColor" className="text-gray-400 dark:text-gray-500">{v}</text>
               </g>
             ))}
-            <text x={INNER_W / 2} y={INNER_H + 28} textAnchor="middle" fontSize={10} fill="currentColor" className="text-gray-400 dark:text-gray-500">km</text>
+            <text x={INNER_W / 2} y={INNER_H + 28} textAnchor="middle" fontSize={10} fill="currentColor" className="text-gray-400 dark:text-gray-500">{axis}</text>
             <polygon points={[`0,${INNER_H}`, ...sampled.map(p => `${scaleX(p.d).toFixed(1)},${scaleY(p.ele).toFixed(1)}`), `${scaleX(sampled[sampled.length-1].d).toFixed(1)},${INNER_H}`].join(' ')}
               fill="url(#dtEleGrad)" clipPath="url(#dtEleClip)" />
             <polyline points={sampled.map(p => `${scaleX(p.d).toFixed(1)},${scaleY(p.ele).toFixed(1)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" clipPath="url(#dtEleClip)" />
@@ -433,13 +436,13 @@ export function ElevationChart({ trackPoints, hoverDist, onHoverChange }) {
         {localHover && (
           <div className="pointer-events-none absolute z-10 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-900/90 dark:bg-gray-950/90 whitespace-nowrap shadow-lg"
             style={{ left: localHover.mouseX, top: localHover.mouseY, transform: `translate(${flipLeft ? 'calc(-100% - 12px)' : '12px'}, -50%)` }}>
-            {Math.round(localHover.pt.ele)} m · {localHover.pt.d.toFixed(2)} km
+            {Math.round(localHover.pt.ele)} m · {formatAxis(localHover.pt.d, axis)}
           </div>
         )}
         {extPt && extTipX != null && (
           <div className="pointer-events-none absolute z-10 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-900/75 dark:bg-gray-950/75 whitespace-nowrap shadow-lg"
             style={{ left: extTipX, top: extTipY, transform: `translate(${extFlipLeft ? 'calc(-100% - 12px)' : '12px'}, -50%)` }}>
-            {Math.round(extPt.ele)} m · {extPt.d.toFixed(2)} km
+            {Math.round(extPt.ele)} m · {formatAxis(extPt.d, axis)}
           </div>
         )}
       </div>
