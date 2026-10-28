@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.2
+
+### Fixed
+
+- **Indoor rides without a speed sensor still showed no charts.** Their only
+  data is heart rate (sometimes cadence or power) over time, and the charts
+  only knew how to plot against distance. Workouts without any distance now
+  chart against elapsed time.
+
 ## 1.9.1
 
 ### Fixed
