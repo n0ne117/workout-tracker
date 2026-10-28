@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
             await scheduler
 
 
-app = FastAPI(title="Workout Tracker", version="1.9.0", lifespan=lifespan)
+app = FastAPI(title="Workout Tracker", version="1.9.1", lifespan=lifespan)
 app.router.default_response_class = JSONResponse
 
 # Monkey-patch starlette's JSON serialisation to tolerate inf/nan

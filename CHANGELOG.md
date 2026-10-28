@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.9.1
+
+### Fixed
+
+- **Indoor workouts came in with only their summary.** A treadmill run
+  (or trainer ride, pool swim) has no GPS, and the importer only kept
+  per-second data alongside GPS positions — so heart rate, pace, cadence
+  and distance over time were thrown away. They are now kept, and the
+  charts plot them against the recorded distance. FIT file imports had the
+  same problem and are fixed too.
+- To repair indoor workouts imported before this, run **Settings →
+  Intervals.icu → Backfill** once; it now also fetches the missing data
+  for workouts that have none.
+
 ## 1.9.0
 
 ### Added
