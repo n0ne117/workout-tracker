@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, load_only, defer
 from sqlalchemy import or_, and_, func
 from app.cache import get_stats_cache, set_stats_cache, invalidate_stats_cache
+from app.services.track_stats import has_gps
 from typing import Optional, List
 from datetime import datetime, timedelta, timezone
 from app.database import get_db
@@ -39,18 +40,24 @@ def ids_with_track(db: Session, ids: List[int]) -> set:
     Which of these workouts carry a GPS track, in one query.
 
     For callers that deferred track_points: reading the column to find out
-    would load the blob row by row. length() > 2 skips both NULL and "[]".
+    would load the blob row by row. Indoor workouts store points without
+    coordinates, so a track counts only if some point has a latitude.
     """
     if not ids:
         return set()
+    point = func.json_each(Workout.track_points).table_valued("value").alias("point")
+    has_lat = (
+        db.query(point.c.value).select_from(point)
+        .filter(func.json_extract(point.c.value, "$.lat").isnot(None))
+        .exists()
+    )
     return {
         row[0] for row in db.query(Workout.id)
         .filter(Workout.id.in_(ids))
-        # A workout with no GPS stores JSON null, which SQLite holds as the
-        # 4-character text "null" — length() alone counted that as a track and
-        # disagreed with the detail endpoint. json_type() separates them.
+        # A workout with no GPS can store JSON null, which SQLite holds as the
+        # text "null"; json_each() over it would fail, so check the type first.
         .filter(func.json_type(Workout.track_points) == "array")
-        .filter(func.length(Workout.track_points) > 2)
+        .filter(has_lat)
         .all()
     }
 
@@ -347,7 +354,7 @@ def get_workout(workout_id: int, db: Session = Depends(get_db)):
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     data = {c.name: getattr(workout, c.name) for c in workout.__table__.columns}
-    data["has_track"] = bool(workout.track_points)
+    data["has_track"] = has_gps(workout.track_points)
     metrics = db.query(WorkoutMetrics).filter(WorkoutMetrics.workout_id == workout_id).first()
     if metrics:
         data["icu_hr_zone_times"] = metrics.icu_hr_zone_times
@@ -397,7 +404,7 @@ def trim_workout(workout_id: int, req: TrimRequest, db: Session = Depends(get_db
     workout = db.query(Workout).filter(Workout.id == workout_id).first()
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
-    if not workout.track_points:
+    if not has_gps(workout.track_points):
         raise HTTPException(status_code=400, detail="No GPS track to trim")
 
     pts = workout.track_points
@@ -418,7 +425,7 @@ def trim_workout(workout_id: int, req: TrimRequest, db: Session = Depends(get_db
     invalidate_stats_cache()
 
     data = {c.name: getattr(workout, c.name) for c in workout.__table__.columns}
-    data["has_track"] = bool(workout.track_points)
+    data["has_track"] = has_gps(workout.track_points)
     return WorkoutDetail(**data)
 
 

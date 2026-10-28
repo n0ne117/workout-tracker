@@ -333,7 +333,10 @@ def backfill(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     Combined one-time backfill:
       Phase 1 – Streams: re-fetches GPS/power/HR/VO/GCT/stride data for every
         intervals.icu workout whose track_points were imported before the full
-        stream set was requested (sentinel: no 'power' key in track_points[0]).
+        stream set was requested (sentinel: no 'power' key in track_points[0]),
+        and for every one stored with no points at all — indoor activities
+        used to lose their streams for lack of GPS. A workout that still has
+        none is marked with an empty list so it is not fetched again.
       Phase 2 – Metrics: fetches training-load, HR-zone times, and intensity
         data for every intervals.icu workout that has no WorkoutMetrics row yet.
     """
@@ -370,15 +373,16 @@ def backfill(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
                 bdb.query(Workout)
                 .filter(
                     Workout.source == "intervals_icu",
-                    Workout.track_points != None,
                     Workout.garmin_activity_id != None,
                 )
                 .all()
             )
-            # Sentinel: 'power' key absent → imported before full stream set was added
+            # Sentinels: no points at all (None — [] means already checked), or
+            # 'power' absent → imported before the full stream set was added.
             needs_streams = [
                 w for w in candidates
-                if w.track_points and "power" not in w.track_points[0]
+                if w.track_points is None
+                or (w.track_points and "power" not in w.track_points[0])
             ]
             _backfill_status["streams_total"] = len(needs_streams)
             logger.info(f"Backfill streams: {len(needs_streams)} workouts need re-fetch")
@@ -395,8 +399,11 @@ def backfill(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
                         bdb.commit()
                         streams_updated += 1
                     else:
-                        # No usable streams — stamp each point with power=None so
-                        # this workout is skipped on any future backfill run.
+                        # No usable streams — stamp each point with power=None
+                        # (or store an empty list) so this workout is skipped
+                        # on any future backfill run.
+                        if workout.track_points is None:
+                            workout.track_points = []
                         for pt in workout.track_points:
                             pt.setdefault("power", None)
                         flag_modified(workout, "track_points")

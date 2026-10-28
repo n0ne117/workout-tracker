@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useCallback } from 'react'
+import { cumulativeKm } from '../utils/track'
 
 const W = 800
 const H = 200
@@ -9,17 +10,6 @@ const INNER_H = H - PAD.top - PAD.bottom
 // 10 min/km in s/km — walk threshold reference line
 const WALK_THRESHOLD = 600
 
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLon = ((lon2 - lon1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 function toSecs(t) {
   if (t == null) return null
@@ -54,15 +44,15 @@ export default function PaceChart({ trackPoints, hoverDist, onHoverChange }) {
     if (!trackPoints?.length) return null
 
     const raw = []
-    let cumDist = 0
+    const km = cumulativeKm(trackPoints)
     let prev = null
+    let prevKm = null
 
-    for (const p of trackPoints) {
-      if (p.lat == null || p.lon == null) { prev = p; continue }
+    trackPoints.forEach((p, i) => {
+      if (km[i] == null) return
 
-      if (prev && prev.lat != null && prev.lon != null) {
-        const segDist = haversineKm(prev.lat, prev.lon, p.lat, p.lon)
-        cumDist += Math.max(0, segDist)
+      if (prev) {
+        const segDist = km[i] - prevKm
 
         let pace = null
 
@@ -80,10 +70,11 @@ export default function PaceChart({ trackPoints, hoverDist, onHoverChange }) {
           pace = 1000 / p.speed // s/km
 
         if (pace != null && pace >= 90 && pace <= 1500) // 1:30 – 25:00 /km sanity range
-          raw.push({ d: cumDist, pace })
+          raw.push({ d: km[i], pace })
       }
       prev = p
-    }
+      prevKm = km[i]
+    })
 
     if (raw.length < 10) return null
 

@@ -20,6 +20,7 @@ import {
   formatWorkoutRate, workoutRateLabel,
 } from '../utils/format'
 import clsx from 'clsx'
+import { hasDistance } from '../utils/track'
 
 const MAX_COMMENT = 500
 
@@ -566,7 +567,7 @@ export default function WorkoutDetail() {
       )}
 
       {/* Pace chart — needs GPS + either time-delta or speed field; chart returns null if data insufficient */}
-      {workout.has_track && (
+      {hasDistance(workout.track_points) && (
         <PaceChart
           trackPoints={workout.track_points}
           hoverDist={chartHoverDist}
@@ -575,7 +576,7 @@ export default function WorkoutDetail() {
       )}
 
       {/* Walk / run chart — only rendered when walking segments are detected */}
-      {workout.has_track && (
+      {hasDistance(workout.track_points) && (
         <WalkRunChart
           trackPoints={workout.track_points}
           hoverDist={chartHoverDist}

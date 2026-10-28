@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from app.services.timeutil import to_local, now_local
+from app.services.track_stats import has_gps
 
 
 logger = logging.getLogger(__name__)
@@ -346,8 +347,13 @@ def _dbg_gps(streams: dict, dbg: list):
 
 
 def build_track_points(streams: dict) -> Optional[list]:
-    """Convert normalised streams dict to our [{lat,lon,ele,time,hr,cad}] format.
-    Returns None if GPS data is absent or clearly lat-only."""
+    """Convert normalised streams dict to our [{lat,lon,ele,time,hr,cad,...}] format.
+
+    Indoor activities (treadmill, trainer, pool) have no coordinates but still
+    carry heart rate, cadence, pace and distance; those come back as points
+    with lat/lon None rather than not at all. `dist` is the recorded distance
+    in metres, which is what the charts measure along when there is no GPS.
+    """
     if not streams:
         return None
 
@@ -371,8 +377,7 @@ def build_track_points(streams: dict) -> Optional[list]:
                 logger.warning(f"Failed to unpack latlng pairs: {e}")
         elif time_s and len(latlng) == len(time_s):
             # One scalar per time step → lat-only, no longitude available
-            logger.debug("latlng stream is lat-only (len == len(time)), skipping")
-            return None
+            logger.debug("latlng stream is lat-only (len == len(time)), ignoring it")
         else:
             # Flat alternating format: [lat, lon, lat, lon, ...]
             lats = latlng[0::2]
@@ -384,9 +389,6 @@ def build_track_points(streams: dict) -> Optional[list]:
     if not lons:
         lons = streams.get("lon")
 
-    if not lats or not lons:
-        return None
-
     eles    = streams.get("altitude")
     times   = streams.get("time")                                      # seconds offset from start
     hrs     = streams.get("heartrate")
@@ -396,20 +398,32 @@ def build_track_points(streams: dict) -> Optional[list]:
     vos     = streams.get("vertical_oscillation")                     # cm
     gcts    = streams.get("ground_contact_time")                      # ms
     strides = streams.get("stride_length")                            # cm
+    dists   = streams.get("distance")                                 # m from start
 
-    n = min(len(lats), len(lons))
+    gps = bool(lats and lons)
+    if gps:
+        n = min(len(lats), len(lons))
+    else:
+        # No coordinates: keep the sensor data, one point per time step.
+        sensors = [s for s in (hrs, cads, speeds, powers, dists) if s]
+        if not times or not sensors:
+            return None
+        n = len(times)
+
     pts: list = []
     for i in range(n):
-        lat = lats[i]
-        lon = lons[i]
-        if lat is None or lon is None:
-            continue
-        # Skip 0,0 points (GPS not yet acquired)
-        if abs(lat) < 0.001 and abs(lon) < 0.001:
-            continue
+        lat = lats[i] if gps else None
+        lon = lons[i] if gps else None
+        if gps:
+            if lat is None or lon is None:
+                continue
+            # Skip 0,0 points (GPS not yet acquired)
+            if abs(lat) < 0.001 and abs(lon) < 0.001:
+                continue
         pts.append({
             "lat":                lat,
             "lon":                lon,
+            "dist":               dists[i]   if dists   and i < len(dists)   else None,  # m
             "ele":                eles[i]    if eles    and i < len(eles)    else None,
             "time":               times[i]   if times   and i < len(times)   else None,
             "hr":                 hrs[i]     if hrs     and i < len(hrs)     else None,
@@ -465,7 +479,7 @@ def activity_to_workout_data(act: dict, streams: Optional[dict],
 
     title = act.get("name") or f"{sport.replace('_',' ').title()} – {started_at.strftime('%b %d, %Y')}"
 
-    # Primary: build track from streams (returns None if latlng is lat-only)
+    # Primary: build track from streams — GPS, or sensor data only when indoors
     track_points = build_track_points(streams) if streams else None
     if dbg is not None:
         if track_points:
@@ -473,13 +487,17 @@ def activity_to_workout_data(act: dict, streams: Optional[dict],
         else:
             dbg.append(f"  → no track from streams")
 
-    # Fallback 1: download and parse the original FIT file
-    if not track_points and api_key:
+    # Fallback 1: download and parse the original FIT file — only taken when
+    # it has coordinates, so an indoor FIT never replaces the stream data.
+    if not has_gps(track_points) and api_key:
         act_id = str(act.get("id", ""))
         if act_id:
-            track_points = fetch_fit_gps(api_key, act_id, dbg=dbg)
+            from_fit = fetch_fit_gps(api_key, act_id, dbg=dbg)
+            if has_gps(from_fit):
+                track_points = from_fit
 
-    # Fallback 2: decode the summary polyline embedded in the activity object
+    # Fallback 2: decode the summary polyline embedded in the activity object,
+    # when there is nothing at all — sensor data beats a bare outline.
     if not track_points:
         polyline = None
         map_field = act.get("map") or {}
@@ -502,9 +520,9 @@ def activity_to_workout_data(act: dict, streams: Optional[dict],
 
     # Bounding box
     bbox_min_lat = bbox_max_lat = bbox_min_lon = bbox_max_lon = None
-    if track_points:
-        lats = [p["lat"] for p in track_points]
-        lons = [p["lon"] for p in track_points]
+    if has_gps(track_points):
+        lats = [p["lat"] for p in track_points if p["lat"] is not None]
+        lons = [p["lon"] for p in track_points if p["lon"] is not None]
         bbox_min_lat, bbox_max_lat = min(lats), max(lats)
         bbox_min_lon, bbox_max_lon = min(lons), max(lons)
 

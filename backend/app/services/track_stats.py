@@ -2,6 +2,16 @@ import math
 from datetime import datetime
 
 
+def has_gps(points) -> bool:
+    """
+    Whether stored track points carry coordinates.
+
+    Indoor activities store heart rate, cadence and pace without a position,
+    so "has track points" no longer means "has a route to draw".
+    """
+    return bool(points) and any(isinstance(p, dict) and p.get("lat") is not None for p in points)
+
+
 def recalculate_track_stats(track_points: list) -> dict:
     """Recompute all derived metrics from a list of track-point dicts."""
     if not track_points:

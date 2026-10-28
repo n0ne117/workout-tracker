@@ -71,7 +71,10 @@ class WorkoutResponse(WorkoutBase):
             for c in workout.__table__.columns
             if c.name != "track_points"
         }
-        data["has_track"] = bool(workout.track_points) if has_track is None else has_track
+        if has_track is None:
+            from app.services.track_stats import has_gps
+            has_track = has_gps(workout.track_points)
+        data["has_track"] = has_track
         return cls(**data)
 
 

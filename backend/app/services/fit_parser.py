@@ -85,6 +85,7 @@ def parse_fit(content: bytes) -> dict:
         cad = fields.get("cadence")
         speed = fields.get("speed") or fields.get("enhanced_speed")
         power = fields.get("power")
+        dist = fields.get("distance")   # metres from the start
         # vertical_oscillation stored in mm by Garmin → convert to cm
         vo_raw = fields.get("vertical_oscillation")
         vertical_oscillation = round(vo_raw / 10, 1) if vo_raw is not None else None
@@ -107,20 +108,26 @@ def parse_fit(content: bytes) -> dict:
             max_lat = max(max_lat, lat)
             min_lon = min(min_lon, lon)
             max_lon = max(max_lon, lon)
+        elif t is None or not (hr or cad or speed or power or dist is not None):
+            continue   # neither a position nor anything measured
 
-            track_points.append({
-                "lat": lat,
-                "lon": lon,
-                "ele": ele,
-                "time": t.isoformat() if t else None,
-                "hr": hr,
-                "cad": cad,
-                "speed": speed,
-                "power": power,
-                "vertical_oscillation": vertical_oscillation,
-                "ground_contact_time": ground_contact_time,
-                "stride_length": stride_length,
-            })
+        # Indoor records (treadmill, trainer) have no position but the same
+        # heart rate, cadence and pace; they are kept with lat/lon None, and
+        # `dist` is what the charts measure along.
+        track_points.append({
+            "lat": lat,
+            "lon": lon,
+            "dist": dist,
+            "ele": ele,
+            "time": t.isoformat() if t else None,
+            "hr": hr,
+            "cad": cad,
+            "speed": speed,
+            "power": power,
+            "vertical_oscillation": vertical_oscillation,
+            "ground_contact_time": ground_contact_time,
+            "stride_length": stride_length,
+        })
 
     # Determine sport
     sport_raw = str(session_data.get("sport", "")).lower()

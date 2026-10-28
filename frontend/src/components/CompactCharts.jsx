@@ -5,6 +5,7 @@
 // never really mobile-specific. Renamed to say what they are rather than which
 // layout used to own them.
 import { useMemo, useRef, useState, useCallback } from 'react'
+import { cumulativeKm } from '../utils/track'
 
 // ── SVG canvas constants ───────────────────────────────────────────────────────
 const W = 800
@@ -14,16 +15,6 @@ const INNER_W = W - PAD.left - PAD.right
 const INNER_H = H - PAD.top - PAD.bottom
 
 // ── Shared utilities ───────────────────────────────────────────────────────────
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLon = ((lon2 - lon1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 function nearestPoint(sampled, distKm) {
   let lo = 0, hi = sampled.length - 1
@@ -49,19 +40,14 @@ function fmtZoneTime(secs) {
 function buildTrackData(trackPoints, field, transform, filterFn) {
   if (!trackPoints?.length) return null
   const pts = []
-  let cumDist = 0, prev = null
-  for (const p of trackPoints) {
-    if (p.lat == null || p.lon == null) { prev = p; continue }
-    if (prev?.lat != null && prev?.lon != null)
-      cumDist += haversineKm(prev.lat, prev.lon, p.lat, p.lon)
+  const km = cumulativeKm(trackPoints)
+  trackPoints.forEach((p, i) => {
     const raw = p[field]
-    if (raw != null) {
-      const val = transform ? transform(raw) : raw
-      if (val != null && isFinite(val) && (!filterFn || filterFn(val)))
-        pts.push({ d: cumDist, val })
-    }
-    prev = p
-  }
+    if (km[i] == null || raw == null) return
+    const val = transform ? transform(raw) : raw
+    if (val != null && isFinite(val) && (!filterFn || filterFn(val)))
+      pts.push({ d: km[i], val })
+  })
   if (pts.length < 2) return null
   const step = Math.ceil(pts.length / 400)
   const sampled = step > 1 ? pts.filter((_, i) => i % step === 0) : pts

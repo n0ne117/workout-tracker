@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useCallback } from 'react'
+import { cumulativeKm } from '../utils/track'
 
 // Matches PaceChart: compact line charts at 180px CSS height
 const W = 800
@@ -10,16 +11,6 @@ const CSS_H = 180
 
 const WALK_THRESHOLD = 600
 
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLon = ((lon2 - lon1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 function nearestPoint(sampled, distKm) {
   let lo = 0, hi = sampled.length - 1
@@ -35,19 +26,14 @@ function nearestPoint(sampled, distKm) {
 function buildTrackData(trackPoints, field, transform, filterFn) {
   if (!trackPoints?.length) return null
   const pts = []
-  let cumDist = 0, prev = null
-  for (const p of trackPoints) {
-    if (p.lat == null || p.lon == null) { prev = p; continue }
-    if (prev?.lat != null && prev?.lon != null)
-      cumDist += haversineKm(prev.lat, prev.lon, p.lat, p.lon)
+  const km = cumulativeKm(trackPoints)
+  trackPoints.forEach((p, i) => {
     const raw = p[field]
-    if (raw != null) {
-      const val = transform ? transform(raw) : raw
-      if (val != null && isFinite(val) && (!filterFn || filterFn(val)))
-        pts.push({ d: cumDist, val })
-    }
-    prev = p
-  }
+    if (km[i] == null || raw == null) return
+    const val = transform ? transform(raw) : raw
+    if (val != null && isFinite(val) && (!filterFn || filterFn(val)))
+      pts.push({ d: km[i], val })
+  })
   if (pts.length < 2) return null
   const step = Math.ceil(pts.length / 600)
   const sampled = step > 1 ? pts.filter((_, i) => i % step === 0) : pts
@@ -212,13 +198,9 @@ export function HeartRateChart({ trackPoints, hoverDist, onHoverChange }) {
 
   const data = useMemo(() => {
     if (!trackPoints?.length) return null
-    const pts = []; let cumDist = 0, prev = null
-    for (const p of trackPoints) {
-      if (p.lat == null || p.lon == null) { prev = p; continue }
-      if (prev?.lat != null && prev?.lon != null) cumDist += haversineKm(prev.lat, prev.lon, p.lat, p.lon)
-      if (p.hr != null) pts.push({ d: cumDist, hr: p.hr })
-      prev = p
-    }
+    const pts = []
+    const km = cumulativeKm(trackPoints)
+    trackPoints.forEach((p, i) => { if (km[i] != null && p.hr != null) pts.push({ d: km[i], hr: p.hr }) })
     if (pts.length < 2) return null
 
     // Summary stats use every point; only the drawn polyline is downsampled.
@@ -347,13 +329,9 @@ export function ElevationChart({ trackPoints, hoverDist, onHoverChange }) {
 
   const data = useMemo(() => {
     if (!trackPoints?.length) return null
-    const pts = []; let cumDist = 0, prev = null
-    for (const p of trackPoints) {
-      if (p.lat == null || p.lon == null) { prev = p; continue }
-      if (prev?.lat != null && prev?.lon != null) cumDist += haversineKm(prev.lat, prev.lon, p.lat, p.lon)
-      if (p.ele != null) pts.push({ d: cumDist, ele: p.ele })
-      prev = p
-    }
+    const pts = []
+    const km = cumulativeKm(trackPoints)
+    trackPoints.forEach((p, i) => { if (km[i] != null && p.ele != null) pts.push({ d: km[i], ele: p.ele }) })
     if (pts.length < 10) return null
     const step = Math.ceil(pts.length / 600)
     const sampled = step > 1 ? pts.filter((_, i) => i % step === 0) : pts
@@ -485,12 +463,13 @@ export function WalkRunChart({ trackPoints, hoverDist, onHoverChange }) {
 
   const data = useMemo(() => {
     if (!trackPoints?.length) return null
-    const raw = []; let cumDist = 0, prev = null
-    for (const p of trackPoints) {
-      if (p.lat == null || p.lon == null) { prev = p; continue }
-      if (prev?.lat != null && prev?.lon != null) {
-        const segDist = haversineKm(prev.lat, prev.lon, p.lat, p.lon)
-        cumDist += Math.max(0, segDist)
+    const raw = []
+    const km = cumulativeKm(trackPoints)
+    let prev = null, prevKm = null
+    trackPoints.forEach((p, i) => {
+      if (km[i] == null) return
+      if (prev) {
+        const segDist = km[i] - prevKm
         let pace = null
         const t = toSecs(p.time), prevT = toSecs(prev.time)
         if (t != null && prevT != null && segDist > 0.005) {
@@ -498,10 +477,10 @@ export function WalkRunChart({ trackPoints, hoverDist, onHoverChange }) {
           if (st > 0 && st < 120) pace = st / segDist
         }
         if (pace == null && p.speed != null && p.speed > 0.1) pace = 1000 / p.speed
-        if (pace != null && pace >= 90 && pace <= 1500) raw.push({ d: cumDist, pace })
+        if (pace != null && pace >= 90 && pace <= 1500) raw.push({ d: km[i], pace })
       }
-      prev = p
-    }
+      prev = p; prevKm = km[i]
+    })
     if (raw.length < 10) return null
     const WIN = 20
     const smoothed = raw.map((p, i) => {
