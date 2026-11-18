@@ -129,3 +129,29 @@ def test_backup_round_trip_keeps_sets_custom_exercises_and_templates(client):
     summary = client.get(f"/api/workouts/{restored['id']}/strength").json()["summary"]
     assert summary["volume"] == 37 * 13 + 36 * 15 + 100
     assert "Eigene Übung" in {e["name"] for e in summary["exercises"]}
+
+
+def test_exercise_history_lists_sessions_oldest_first(client):
+    lat = _ex(client, "Latzug (Maschine)")["id"]
+    for day, sets in [
+        ("2026-11-17", [(38.5, 12), (38.5, 13)]),
+        ("2026-11-03", [(35, 15)]),
+        ("2026-11-10", [(37.5, 13), (36, 15)]),
+    ]:
+        w = add_workout(client, title=f"Milon {day}", sport="strength_training", started_at=f"{day}T18:00:00")
+        client.put(f"/api/workouts/{w['id']}/strength", json={"sets": [
+            {"round": i + 1, "position": 1, "set_no": 1, "exercise_id": lat, "weight_kg": kg, "reps": reps}
+            for i, (kg, reps) in enumerate(sets)
+        ]})
+
+    body = client.get(f"/api/strength/exercises/{lat}/history").json()
+    assert body["exercise"]["name"] == "Latzug (Maschine)"
+    sessions = body["sessions"]
+    assert [s["date"][:10] for s in sessions] == ["2026-11-03", "2026-11-10", "2026-11-17"]
+    assert sessions[1]["best_set"] == {"weight_kg": 37.5, "reps": 13} and sessions[1]["volume"] == 37.5 * 13 + 36 * 15
+    # Equal weights: the set with more reps is the best one.
+    assert sessions[2]["best_set"] == {"weight_kg": 38.5, "reps": 13} and sessions[2]["sets"] == 2
+
+    assert client.get("/api/strength/exercises/999999/history").status_code == 404
+    unused = _ex(client, "Burpees")["id"]
+    assert client.get(f"/api/strength/exercises/{unused}/history").json()["sessions"] == []

@@ -126,6 +126,38 @@ def last_sets(ids: str, before: Optional[datetime] = None, db: Session = Depends
     return out
 
 
+@router.get("/strength/exercises/{exercise_id}/history")
+def exercise_history(exercise_id: int, db: Session = Depends(get_db)):
+    """
+    Every session that included this exercise, oldest first: heaviest set,
+    reps and volume — what the progress chart and table are drawn from.
+    """
+    ex = db.get(Exercise, exercise_id)
+    if not ex:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    rows = (db.query(StrengthSet, Workout)
+            .join(Workout, Workout.id == StrengthSet.workout_id)
+            .filter(StrengthSet.exercise_id == exercise_id)
+            .order_by(Workout.started_at, StrengthSet.round, StrengthSet.set_no)
+            .all())
+    sessions = {}
+    for st, w in rows:
+        s = sessions.setdefault(w.id, {
+            "workout_id": w.id, "title": w.title, "date": w.started_at.isoformat(),
+            "sets": 0, "reps": 0, "volume": 0.0, "best_weight": None, "best_set": None,
+        })
+        weight, reps = st.weight_kg, st.reps or 0
+        s["sets"] += 1
+        s["reps"] += reps
+        s["volume"] += (weight or 0) * reps
+        # Heaviest set; on equal weight, the one with more reps.
+        if weight is not None and (s["best_set"] is None or (weight, reps) > (s["best_set"]["weight_kg"], s["best_set"]["reps"])):
+            s["best_weight"] = weight
+            s["best_set"] = {"weight_kg": weight, "reps": reps}
+    history = [dict(s, volume=round(s["volume"], 1)) for s in sessions.values()]
+    return {"exercise": _exercise_dict(ex), "sessions": history}
+
+
 # ── A workout's sets ─────────────────────────────────────────────────────────
 
 class SetIn(BaseModel):

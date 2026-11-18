@@ -17,11 +17,15 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
  *   dotRadius / dotOpacity — make the dots the main mark (monthly averages)
  *   labels     { day: fn(iso) → string, value: string, mean: string } for the tooltip;
  *              mean: null hides the second line
+ *   format     fn(value, { unit }) → string, for values that aren't a wellness field
+ *              (strength progress); `field` is then only a name
  */
 export default function TrendChart({
   field, series, domain, band = null, height = 120,
-  dotRadius = 1.75, dotOpacity = 0.3, labels = {},
+  dotRadius = 1.75, dotOpacity = 0.3, labels = {}, format = null,
 }) {
+  const fmt = format ?? ((v, opts) => formatValue(field, v, opts))
+  const disp = format ? (v => v) : (v => displayValue(field, v))
   const [ref, width] = useWidth()
   const [hover, setHover] = useState(null)
   const iw = width - PAD.left - PAD.right
@@ -36,13 +40,13 @@ export default function TrendChart({
     const vals = [
       ...series.flatMap(p => [p.value, p.mean]),
       ...(band ?? []).flatMap(b => [b.lo, b.hi]),
-    ].map(v => displayValue(field, v))
+    ].map(disp)
     let lo = Math.min(...vals), hi = Math.max(...vals)
     if (lo === hi) { lo -= 1; hi += 1 }
     const pad = (hi - lo) * 0.08
     lo -= pad; hi += pad
     const x = iso => ((parseDay(iso).getTime() - t0) / (t1 - t0)) * iw
-    const y = v => ih - ((displayValue(field, v) - lo) / (hi - lo)) * ih
+    const y = v => ih - ((disp(v) - lo) / (hi - lo)) * ih
     const points = series.map(p => ({ ...p, px: x(p.date), py: y(p.value), my: y(p.mean) }))
     const line = points.map((p, i) => `${i ? 'L' : 'M'}${p.px.toFixed(1)},${p.my.toFixed(1)}`).join('')
     const area = band?.length
@@ -62,7 +66,7 @@ export default function TrendChart({
     }
     const raw = series.map(p => p.value)
     return { points, line, area, ticks, yLo: y(Math.min(...raw)), yHi: y(Math.max(...raw)) }
-  }, [series, domain, band, field, iw, ih, height])
+  }, [series, domain, band, field, iw, ih, height, format])
 
   function onMove(e) {
     if (!geo) return
@@ -89,10 +93,10 @@ export default function TrendChart({
               <line key={i} x1={0} x2={iw} y1={yy} y2={yy} className="stroke-gray-100 dark:stroke-gray-800" strokeWidth={1} />
             ))}
             <text x={-6} y={geo.yHi} dy="0.32em" textAnchor="end" className="fill-gray-400 text-[10px] tabular-nums">
-              {formatValue(field, maxRaw, { unit: false })}
+              {fmt(maxRaw, { unit: false })}
             </text>
             <text x={-6} y={geo.yLo} dy="0.32em" textAnchor="end" className="fill-gray-400 text-[10px] tabular-nums">
-              {formatValue(field, minRaw, { unit: false })}
+              {fmt(minRaw, { unit: false })}
             </text>
             {geo.ticks.length ? geo.ticks.map(t => (
               <text key={`${t.year}-${t.month}`} x={t.px} y={ih + 14} textAnchor="middle" className="fill-gray-400 text-[10px]">
@@ -131,14 +135,14 @@ export default function TrendChart({
           <p className="text-gray-500 dark:text-gray-400">{dayLabel(hover.date)}</p>
           <p className="font-medium text-gray-900 dark:text-white tabular-nums">
             {labels.value && <span className="font-normal text-gray-500 dark:text-gray-400">{labels.value} </span>}
-            {formatValue(field, hover.value)}
+            {fmt(hover.value)}
           </p>
           {meanLabel && (
-            <p className="text-gray-500 dark:text-gray-400 tabular-nums">{meanLabel} {formatValue(field, hover.mean)}</p>
+            <p className="text-gray-500 dark:text-gray-400 tabular-nums">{meanLabel} {fmt(hover.mean)}</p>
           )}
           {bandAt && (
             <p className="text-gray-500 dark:text-gray-400 tabular-nums">
-              usual {formatValue(field, bandAt.lo, { unit: false })}–{formatValue(field, bandAt.hi)}
+              usual {fmt(bandAt.lo, { unit: false })}–{fmt(bandAt.hi)}
             </p>
           )}
         </div>

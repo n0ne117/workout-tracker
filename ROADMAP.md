@@ -19,11 +19,6 @@ reps. Importing them would remove the double entry. Three possible sources:
 - **Hevy API** — complete data, but requires a Hevy Pro subscription.
 - **Garmin personal API** — available, not in use yet.
 
-## Ideas
-
-- **Progress per exercise** — weight and volume over time for one exercise
-  (e.g. Latzug), in the style of the Health metric pages.
-
 ## Deliberately deferred
 
 - **Major frontend upgrades** — React 19, React Router 7, Tailwind 4, Vite 7+.

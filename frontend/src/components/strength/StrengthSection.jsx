@@ -7,6 +7,7 @@ import { api } from '../../hooks/useApi'
 import { formatDate } from '../../utils/format'
 import { useCatalog, formatKg } from './catalog'
 import ExercisePicker from './ExercisePicker'
+import ExerciseProgress from './ExerciseProgress'
 
 // ── Shapes ───────────────────────────────────────────────────────────────────
 // The API stores flat sets; the editor works on rounds → exercises → sets.
@@ -147,7 +148,7 @@ export default function StrengthSection({ workout }) {
                       onPrevious={() => setDraft(toRounds(previous.sets))}
                       onEmpty={() => setDraft([{ exercises: [] }])} />
       ) : (
-        <SessionView session={session} byId={byId} />
+        <SessionView session={session} byId={byId} workoutId={workout.id} />
       )}
     </div>
   )
@@ -186,9 +187,20 @@ function StartChooser({ templates, previous, busy, onTemplate, onDeleteTemplate,
 
 // ── Logged session ───────────────────────────────────────────────────────────
 
-function SessionView({ session, byId }) {
+function SessionView({ session, byId, workoutId }) {
   const { summary } = session
   const rounds = toRounds(session.sets)
+  const [progressFor, setProgressFor] = useState(null)
+  const toggle = id => setProgressFor(p => (p === id ? null : id))
+
+  // An exercise name that opens its progress across sessions.
+  const ExerciseName = ({ id, className }) => (
+    <button onClick={() => toggle(id)} title="Show progress"
+            className={clsx('text-left hover:text-brand-600 dark:hover:text-brand-400 hover:underline underline-offset-2',
+              progressFor === id && 'text-brand-600 dark:text-brand-400', className)}>
+      {byId[id]?.name ?? '…'}
+    </button>
+  )
   const tiles = [
     { label: 'Volume', value: formatKg(summary.volume), hint: 'weight × reps, added up' },
     { label: 'Sets', value: summary.sets },
@@ -209,14 +221,19 @@ function SessionView({ session, byId }) {
 
       <MuscleSplit split={summary.split} />
 
+      {progressFor != null && (
+        <ExerciseProgress exerciseId={progressFor} currentWorkoutId={workoutId} onClose={() => setProgressFor(null)} />
+      )}
+
       <div className="space-y-3">
+        <p className="text-[11px] text-gray-400 dark:text-gray-500">Tap an exercise to see its progress over time</p>
         {rounds.map((r, ri) => (
           <div key={ri}>
             {rounds.length > 1 && <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Round {ri + 1}</p>}
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {r.exercises.map((e, ei) => (
                 <li key={ei} className="py-1.5 flex flex-wrap items-baseline justify-between gap-x-4">
-                  <span className="text-sm text-gray-900 dark:text-gray-100">{byId[e.exercise_id]?.name ?? '…'}</span>
+                  <ExerciseName id={e.exercise_id} className="text-sm text-gray-900 dark:text-gray-100" />
                   <span className="text-sm text-gray-600 dark:text-gray-300 tabular-nums">
                     {e.sets.map(s => `${s.weight_kg != null ? formatKg(s.weight_kg) : 'BW'} × ${s.reps ?? '–'}`).join(' · ')}
                   </span>
@@ -239,7 +256,7 @@ function SessionView({ session, byId }) {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800 tabular-nums">
               {summary.exercises.map(e => (
                 <tr key={e.exercise_id} className="text-gray-800 dark:text-gray-200">
-                  <td className="py-1.5">{e.name}</td><td className="text-right">{e.sets}</td>
+                  <td className="py-1.5"><ExerciseName id={e.exercise_id} /></td><td className="text-right">{e.sets}</td>
                   <td className="text-right">{e.reps}</td><td className="text-right">{formatKg(e.best_weight)}</td>
                   <td className="text-right">{formatKg(e.volume)}</td>
                 </tr>
