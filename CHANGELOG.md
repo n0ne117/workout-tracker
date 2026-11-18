@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.12.0
+
+### Changed
+
+- **Under the hood: newer foundations, nothing new on screen.**
+  - The image runs Python 3.14 (was 3.12), with updated backend libraries.
+  - The frontend moved to React 19 and React Router 7, which clears the
+    only security advisories affecting the running app. Two unused libraries
+    were removed.
+  - Remaining audit warnings are in build tools that never ship in the image;
+    Tailwind 4 and Vite 8 (on the roadmap) clear them.
+
+### Fixed
+
+- Info popovers rendered invalid HTML inside paragraphs; harmless, but
+  React 19 flagged it.
+
 ## 1.11.0
 
 ### Added
