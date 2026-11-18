@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, LoaderCircle } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'
 import { WELLNESS_CHANGED } from '../hooks/useIntervalsSync'
@@ -53,7 +53,7 @@ export default function HealthMetric() {
   )
 
   if (error) return <div className="space-y-4">{back}<div className="card p-6 text-sm text-red-600 dark:text-red-400">Could not load health data: {error}</div></div>
-  if (!data) return <div className="space-y-4">{back}<div className="card p-10 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div></div>
+  if (!data) return <div className="space-y-4">{back}<div className="card p-10 flex justify-center"><LoaderCircle className="animate-spin text-gray-400" /></div></div>
   if (!data.fields.includes(field)) {
     return <div className="space-y-4">{back}<div className="card p-6 text-sm text-gray-500 dark:text-gray-400">No {m.label} data recorded yet.</div></div>
   }

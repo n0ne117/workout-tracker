@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Loader2, Map, Clock, Activity, Mountain } from 'lucide-react'
+import { LoaderCircle, Map, Clock, Activity, Mountain } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'
 import {
@@ -102,7 +102,7 @@ export default function PeriodSummary() {
 
       {loading ? (
         <div className="flex justify-center py-8">
-          <Loader2 size={22} className="animate-spin text-brand-500" />
+          <LoaderCircle size={22} className="animate-spin text-brand-500" />
         </div>
       ) : workouts.length === 0 ? (
         <div className="card p-8 text-center text-gray-400 dark:text-gray-600">

@@ -3,7 +3,7 @@ import { api } from '../hooks/useApi'
 import { formatSport, formatDuration, formatDistance, formatRateFromPace, isoDate } from '../utils/format'
 import SportIcon from '../components/SportIcon'
 import PeriodSummary from '../components/PeriodSummary'
-import { Loader2, TrendingUp, Activity, Map, Clock, Mountain, Trophy, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LoaderCircle, TrendingUp, Activity, Map, Clock, Mountain, Trophy, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -203,7 +203,7 @@ export default function Stats() {
 
   if (loading) return (
     <div className="flex justify-center py-16">
-      <Loader2 size={28} className="animate-spin text-brand-500" />
+      <LoaderCircle size={28} className="animate-spin text-brand-500" />
     </div>
   )
   if (!stats || stats.total === 0) return (

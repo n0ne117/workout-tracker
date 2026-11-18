@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { X, Save, Scissors, Loader2, RotateCcw } from 'lucide-react'
+import { X, Save, Scissors, LoaderCircle, RotateCcw } from 'lucide-react'
 import { formatDuration, formatDistance, formatElevation } from '../utils/format'
 
 // ── Geo helpers ───────────────────────────────────────────────────────────────
@@ -350,7 +350,7 @@ export default function WorkoutTrimmer({ trackPoints, onSave, onCancel, saving }
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saving
-              ? <Loader2 size={15} className="animate-spin" />
+              ? <LoaderCircle size={15} className="animate-spin" />
               : <Save size={15} />}
             Save Trim
           </button>

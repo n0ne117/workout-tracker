@@ -9,9 +9,9 @@ import { HrZoneChart, PowerZoneChart } from '../components/CompactCharts'
 import SportIcon from '../components/SportIcon'
 import { sportBadgeClass, isPaceSport } from '../utils/sports'
 import {
-  ArrowLeft, Trophy, Pencil, Trash2, Save, X,
+  ArrowLeft, Trophy, Pencil, Trash, Save, X,
   Heart, Zap, Clock, TrendingUp, Wind, Activity,
-  Loader2, MapPin, Map, AlertCircle, MessageSquare,
+  LoaderCircle, MapPin, Map, CircleExclamationPoint, MessageSquare,
   Package, Plus, Footprints, Bike, Scissors
 } from 'lucide-react'
 import {
@@ -125,7 +125,7 @@ function GearSection({ workoutId }) {
             onClick={openPicker}
             className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
           >
-            {pickerLoading ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Add
+            {pickerLoading ? <LoaderCircle size={11} className="animate-spin" /> : <Plus size={11} />} Add
           </button>
 
           {pickerOpen && (
@@ -208,7 +208,7 @@ function CommentCard({ workoutId, initialNotes, onSaved }) {
                 <X size={13} /> Cancel
               </button>
               <button onClick={save} disabled={saving} className="btn-primary py-1 px-3 text-xs">
-                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                {saving ? <LoaderCircle size={13} className="animate-spin" /> : <Save size={13} />}
                 Save
               </button>
             </div>
@@ -333,7 +333,7 @@ export default function WorkoutDetail() {
 
   if (loading) return (
     <div className="flex justify-center py-16">
-      <Loader2 size={28} className="animate-spin text-brand-500" />
+      <LoaderCircle size={28} className="animate-spin text-brand-500" />
     </div>
   )
 
@@ -343,7 +343,7 @@ export default function WorkoutDetail() {
         <ArrowLeft size={16} /> Back
       </Link>
       <div className="card p-6 flex items-center gap-3 text-red-500">
-        <AlertCircle size={20} />
+        <CircleExclamationPoint size={20} />
         <span>{error}</span>
       </div>
     </div>
@@ -409,7 +409,7 @@ export default function WorkoutDetail() {
             </div>
             <div className="flex gap-2">
               <button onClick={save} disabled={saving} className="btn-primary">
-                {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                {saving ? <LoaderCircle size={15} className="animate-spin" /> : <Save size={15} />}
                 Save
               </button>
               <button onClick={() => setEditing(false)} className="btn-secondary">
@@ -463,7 +463,7 @@ export default function WorkoutDetail() {
                 disabled={deleting}
                 className="btn-ghost px-2.5 py-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
               >
-                {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                {deleting ? <LoaderCircle size={15} className="animate-spin" /> : <Trash size={15} />}
               </button>
             </div>
           </div>

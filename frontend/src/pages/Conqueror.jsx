@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { api } from '../hooks/useApi'
 import {
-  Loader2, Plus, Flag, CheckCircle2, CircleDot, Clock,
-  ChevronDown, ChevronRight, AlertTriangle, Pencil, Trash2,
+  LoaderCircle, Plus, Flag, CircleCheck, CircleDot, Clock,
+  ChevronDown, ChevronRight, TriangleExclamationPoint, Pencil, Trash,
   X, Save, Calendar, Map, Package
 } from 'lucide-react'
 import { formatDate } from '../utils/format'
@@ -54,7 +54,7 @@ function StatCard({ label, value, sub, accent }) {
 function StatusBadge({ status }) {
   if (status === 'completed') return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-      <CheckCircle2 size={11} /> Done
+      <CircleCheck size={11} /> Done
     </span>
   )
   if (status === 'active') return (
@@ -90,7 +90,7 @@ function ActiveCard({ c, onEdit, onDelete }) {
         </div>
         <div className="flex gap-1 shrink-0">
           <button onClick={() => onEdit(c)} className="btn-ghost p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={14} /></button>
-          <button onClick={() => onDelete(c)} className="btn-ghost p-1.5 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+          <button onClick={() => onDelete(c)} className="btn-ghost p-1.5 text-gray-400 hover:text-red-500"><Trash size={14} /></button>
         </div>
       </div>
     </div>
@@ -101,7 +101,7 @@ function CompletedRow({ c, onEdit, onDelete }) {
   const days = c.start_date && c.end_date ? daysBetween(new Date(c.end_date), new Date(c.start_date)) : null
   return (
     <div className="flex items-center gap-3 py-2.5 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 rounded-lg group transition-colors">
-      <CheckCircle2 size={14} className="text-green-500 shrink-0" />
+      <CircleCheck size={14} className="text-green-500 shrink-0" />
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate block">{c.name}</span>
       </div>
@@ -116,7 +116,7 @@ function CompletedRow({ c, onEdit, onDelete }) {
       </div>
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(c)} className="btn-ghost p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={13} /></button>
-        <button onClick={() => onDelete(c)} className="btn-ghost p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+        <button onClick={() => onDelete(c)} className="btn-ghost p-1 text-gray-400 hover:text-red-500"><Trash size={13} /></button>
       </div>
     </div>
   )
@@ -173,7 +173,7 @@ function BacklogRow({ c, onEdit, onDelete }) {
         })}>
           {c.use_before ? (
             <>
-              {(urgency === 'critical' || urgency === 'warning') && <AlertTriangle size={11} />}
+              {(urgency === 'critical' || urgency === 'warning') && <TriangleExclamationPoint size={11} />}
               Exp. {formatDate(c.use_before)}
             </>
           ) : '—'}
@@ -181,7 +181,7 @@ function BacklogRow({ c, onEdit, onDelete }) {
       </div>
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(c)} className="btn-ghost p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={13} /></button>
-        <button onClick={() => onDelete(c)} className="btn-ghost p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+        <button onClick={() => onDelete(c)} className="btn-ghost p-1 text-gray-400 hover:text-red-500"><Trash size={13} /></button>
       </div>
     </div>
   )
@@ -300,7 +300,7 @@ function ChallengeModal({ initial, onClose, onSaved }) {
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
             <button type="submit" disabled={saving} className="btn btn-primary">
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {saving ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}
               {isEdit ? 'Save changes' : 'Add challenge'}
             </button>
           </div>
@@ -323,7 +323,7 @@ function DeleteConfirm({ challenge, onConfirm, onCancel, deleting }) {
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className="btn btn-secondary">Cancel</button>
           <button onClick={onConfirm} disabled={deleting} className="btn btn-danger">
-            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {deleting ? <LoaderCircle size={14} className="animate-spin" /> : <Trash size={14} />}
             Delete
           </button>
         </div>
@@ -416,7 +416,7 @@ export default function Conqueror() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Conqueror Challenges</h1>
           {expiringCount > 0 && (
             <p className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-1.5 mt-0.5">
-              <AlertTriangle size={13} />
+              <TriangleExclamationPoint size={13} />
               {expiringCount} challenge{expiringCount !== 1 ? 's' : ''} expiring within 6 months
             </p>
           )}
@@ -427,7 +427,7 @@ export default function Conqueror() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 size={28} className="animate-spin text-brand-500" /></div>
+        <div className="flex justify-center py-16"><LoaderCircle size={28} className="animate-spin text-brand-500" /></div>
       ) : (
         <>
           {/* Stats */}
@@ -455,7 +455,7 @@ export default function Conqueror() {
           {sortedYears.length > 0 && (
             <div className="card p-4 space-y-1">
               <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2 mb-3">
-                <CheckCircle2 size={14} className="text-green-500" /> Completed
+                <CircleCheck size={14} className="text-green-500" /> Completed
               </h2>
               {sortedYears.map(yr => (
                 <YearSection

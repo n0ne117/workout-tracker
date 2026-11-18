@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search, Pencil, Trash2, Plus, Loader2, ChevronDown } from 'lucide-react'
+import { Search, Pencil, Trash, Plus, LoaderCircle, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../../hooks/useApi'
 import { useCatalog } from './catalog'
@@ -48,7 +48,7 @@ export default function ExerciseCatalog() {
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
       <div className="flex gap-2">
         <button onClick={save} disabled={busy || !editing.name.trim() || !editing.primary.length} className="btn-primary py-1.5 text-xs">
-          {busy && <Loader2 size={13} className="animate-spin" />} Save
+          {busy && <LoaderCircle size={13} className="animate-spin" />} Save
         </button>
         <button onClick={() => { setEditing(null); setError(null) }} className="btn-ghost py-1.5 text-xs">Cancel</button>
       </div>
@@ -95,7 +95,7 @@ export default function ExerciseCatalog() {
                   <button onClick={() => { setError(null); setEditing({ id: e.id, name: e.name, primary: e.primary, secondary: e.secondary }) }}
                           className="btn-ghost p-1.5" aria-label={`Edit ${e.name}`}><Pencil size={14} /></button>
                   {e.custom && (
-                    <button onClick={() => remove(e)} className="btn-ghost p-1.5 text-red-500" aria-label={`Delete ${e.name}`}><Trash2 size={14} /></button>
+                    <button onClick={() => remove(e)} className="btn-ghost p-1.5 text-red-500" aria-label={`Delete ${e.name}`}><Trash size={14} /></button>
                   )}
                 </div>
               )}

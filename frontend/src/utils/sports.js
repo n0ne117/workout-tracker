@@ -1,5 +1,5 @@
 import {
-  Footprints, Mountain, MountainSnow, Bike, Waves, Dumbbell, Activity,
+  Footprints, Mountain, MountainSnow, Bike, WavesHorizontal, Dumbbell, Activity,
   Zap, Wind, Timer, Trophy, Snowflake, Ship, Anchor, Gamepad2, RotateCw,
   Heart, Sparkles, Sailboat, PersonStanding, Volleyball, Swords, TreePine,
 } from 'lucide-react'
@@ -30,8 +30,8 @@ const SPORTS = {
   mountain_biking:     { label: 'Mountain Biking',   icon: Bike,            metric: 'speed', solid: 'bg-amber-600',   badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',        dot: 'text-amber-600' },
   indoor_cycling:      { label: 'Indoor Cycling',    icon: Bike,            metric: 'speed', solid: 'bg-violet-500',  badge: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300',    dot: 'text-violet-500' },
   motorbiking:         { label: 'Motorbiking',       icon: Bike,            metric: 'speed', solid: 'bg-zinc-600',    badge: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',            dot: 'text-zinc-600' },
-  swimming:            { label: 'Swimming',          icon: Waves,           metric: 'swim',  solid: 'bg-cyan-500',    badge: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300',            dot: 'text-cyan-500' },
-  open_water_swimming: { label: 'Open Water Swim',   icon: Waves,           metric: 'swim',  solid: 'bg-teal-500',    badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',            dot: 'text-teal-500' },
+  swimming:            { label: 'Swimming',          icon: WavesHorizontal,           metric: 'swim',  solid: 'bg-cyan-500',    badge: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300',            dot: 'text-cyan-500' },
+  open_water_swimming: { label: 'Open Water Swim',   icon: WavesHorizontal,           metric: 'swim',  solid: 'bg-teal-500',    badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',            dot: 'text-teal-500' },
   rowing:              { label: 'Rowing',            icon: Sailboat,        metric: 'speed', solid: 'bg-sky-500',     badge: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',                dot: 'text-sky-500' },
   indoor_rowing:       { label: 'Indoor Rowing',     icon: Timer,           metric: 'speed', solid: 'bg-sky-600',     badge: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',                dot: 'text-sky-600' },
   sup:                 { label: 'SUP',               icon: Ship,            metric: 'speed', solid: 'bg-sky-400',     badge: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',                dot: 'text-sky-400' },

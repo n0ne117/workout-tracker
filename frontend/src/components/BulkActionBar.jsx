@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, Trophy, Download, X, Loader2 } from 'lucide-react'
+import { Trash, Trophy, Download, X, LoaderCircle } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'
 
@@ -88,7 +88,7 @@ export default function BulkActionBar({ selected, onClear, onChanged }) {
               disabled={busy === 'delete'}
               className="btn text-xs px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
             >
-              {busy === 'delete' ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+              {busy === 'delete' ? <LoaderCircle size={13} className="animate-spin" /> : <Trash size={13} />}
               Delete {count}
             </button>
           </div>
@@ -101,7 +101,7 @@ export default function BulkActionBar({ selected, onClear, onChanged }) {
             <div className="flex items-center gap-1.5 ml-auto flex-wrap">
               <button onClick={() => setRace(true)} disabled={!!busy}
                       className="btn-secondary text-xs px-2.5 py-1.5" title="Mark as race">
-                {busy === 'race' ? <Loader2 size={13} className="animate-spin" /> : <Trophy size={13} />}
+                {busy === 'race' ? <LoaderCircle size={13} className="animate-spin" /> : <Trophy size={13} />}
                 <span className="hidden sm:inline">Race</span>
               </button>
               <button onClick={() => setRace(false)} disabled={!!busy}
@@ -111,13 +111,13 @@ export default function BulkActionBar({ selected, onClear, onChanged }) {
               </button>
               <button onClick={download} disabled={!!busy}
                       className="btn-secondary text-xs px-2.5 py-1.5" title="Download as zip (JSON + GPX)">
-                {busy === 'download' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                {busy === 'download' ? <LoaderCircle size={13} className="animate-spin" /> : <Download size={13} />}
                 <span className="hidden sm:inline">Download</span>
               </button>
               <button onClick={() => setConfirming(true)} disabled={!!busy}
                       className="btn text-xs px-2.5 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
                       title="Delete selected">
-                <Trash2 size={13} />
+                <Trash size={13} />
                 <span className="hidden sm:inline">Delete</span>
               </button>
               <button onClick={onClear} className="btn-ghost p-1.5" title="Clear selection" aria-label="Clear selection">

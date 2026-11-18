@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Dumbbell, Plus, Minus, Trash2, ChevronUp, ChevronDown, Pencil, Save, Loader2, History, LayoutTemplate, Copy,
+  Dumbbell, Plus, Minus, Trash, ChevronUp, ChevronDown, Pencil, Save, LoaderCircle, RotateCcwClock, LayoutTemplate, Copy,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../../hooks/useApi'
@@ -111,7 +111,7 @@ export default function StrengthSection({ workout }) {
   }
 
   if (!session) {
-    return <div className="card p-5 flex items-center gap-2 text-sm text-gray-400"><Loader2 size={15} className="animate-spin" /> Loading sets…</div>
+    return <div className="card p-5 flex items-center gap-2 text-sm text-gray-400"><LoaderCircle size={15} className="animate-spin" /> Loading sets…</div>
   }
 
   const header = (
@@ -169,13 +169,13 @@ function StartChooser({ templates, previous, busy, onTemplate, onDeleteTemplate,
             </button>
             <button onClick={() => onDeleteTemplate(t)} className="btn-primary rounded-l-none px-2 py-1.5 border-l border-white/20"
                     aria-label={`Delete template ${t.name}`} title="Delete template">
-              <Trash2 size={13} />
+              <Trash size={13} />
             </button>
           </span>
         ))}
         {previous && (
           <button onClick={onPrevious} className="btn-secondary py-1.5 text-sm">
-            <History size={14} /> Like last time
+            <RotateCcwClock size={14} /> Like last time
             <span className="text-xs text-gray-500 dark:text-gray-400">· {previous.workout.title}, {formatDate(previous.workout.started_at)}</span>
           </button>
         )}
@@ -342,7 +342,7 @@ function Editor({ draft, setDraft, exercises, groups, byId, reloadCatalog, lastS
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Round {ri + 1}</p>
             {draft.length > 1 && (
               <button onClick={() => update(d => d.splice(ri, 1))} className="btn-ghost px-2 py-1 text-xs text-red-500">
-                <Trash2 size={13} /> Remove round
+                <Trash size={13} /> Remove round
               </button>
             )}
           </div>
@@ -356,7 +356,7 @@ function Editor({ draft, setDraft, exercises, groups, byId, reloadCatalog, lastS
                 </div>
                 <button onClick={() => move(ri, ei, -1)} disabled={ei === 0} className="btn-ghost p-1.5" aria-label="Move up"><ChevronUp size={14} /></button>
                 <button onClick={() => move(ri, ei, 1)} disabled={ei === round.exercises.length - 1} className="btn-ghost p-1.5" aria-label="Move down"><ChevronDown size={14} /></button>
-                <button onClick={() => update(d => d[ri].exercises.splice(ei, 1))} className="btn-ghost p-1.5 text-red-500" aria-label="Remove exercise"><Trash2 size={14} /></button>
+                <button onClick={() => update(d => d[ri].exercises.splice(ei, 1))} className="btn-ghost p-1.5 text-red-500" aria-label="Remove exercise"><Trash size={14} /></button>
               </div>
               {e.sets.map((s, si) => (
                 <div key={si} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -367,7 +367,7 @@ function Editor({ draft, setDraft, exercises, groups, byId, reloadCatalog, lastS
                            onChange={v => update(d => { d[ri].exercises[ei].sets[si].reps = v == null ? null : Math.round(v) })} />
                   {e.sets.length > 1 && (
                     <button onClick={() => update(d => d[ri].exercises[ei].sets.splice(si, 1))} className="btn-ghost p-1.5 text-gray-400" aria-label="Remove set">
-                      <Trash2 size={13} />
+                      <Trash size={13} />
                     </button>
                   )}
                 </div>
@@ -396,7 +396,7 @@ function Editor({ draft, setDraft, exercises, groups, byId, reloadCatalog, lastS
         </button>
         <button onClick={onCancel} className="btn-ghost py-1.5 text-sm">Cancel</button>
         <button onClick={onSave} disabled={busy} className={clsx('btn-primary py-1.5 text-sm')}>
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
+          {busy ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />} Save
         </button>
       </div>
     </div>

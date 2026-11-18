@@ -4,7 +4,7 @@ import FilterBar from '../components/FilterBar'
 import { api, buildWorkoutQuery } from '../hooks/useApi'
 import { WORKOUTS_CHANGED } from '../hooks/useIntervalsSync'
 import { isoDate } from '../utils/format'
-import { Loader2, ListChecks } from 'lucide-react'
+import { LoaderCircle, ListChecks } from 'lucide-react'
 import BulkActionBar from '../components/BulkActionBar'
 import clsx from 'clsx'
 
@@ -184,7 +184,7 @@ export default function Dashboard() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 size={28} className="animate-spin text-brand-500" />
+          <LoaderCircle size={28} className="animate-spin text-brand-500" />
         </div>
       ) : (
         <WorkoutTable

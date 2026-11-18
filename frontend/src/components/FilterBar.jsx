@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, X, Trophy, Filter, CopyCheck } from 'lucide-react'
+import { Search, X, Trophy, Funnel, CopyCheck } from 'lucide-react'
 import { formatSport } from '../utils/format'
 import SportIcon from './SportIcon'
 import { api } from '../hooks/useApi'
@@ -47,7 +47,7 @@ export default function FilterBar({ filters, onChange, collapseControl }) {
               : 'btn-secondary'
           )}
         >
-          <Filter size={15} />
+          <Funnel size={15} />
           <span className="hidden sm:inline">Filters</span>
           {hasFilters && (
             <span className="bg-white/30 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">

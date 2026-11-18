@@ -1,13 +1,13 @@
 import clsx from 'clsx'
-import { CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus, Info } from 'lucide-react'
+import { CircleCheck, TriangleExclamationPoint, ArrowUp, ArrowDown, Minus, Info } from 'lucide-react'
 import { meta } from '../../utils/wellness'
 import InfoTip from '../runlab/InfoTip'
 
 // ── Verdicts ──────────────────────────────────────────────────────────────────
 
 export const VERDICT = {
-  better: { text: 'Better than usual', icon: CheckCircle2, cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-  worse:  { text: 'Worse than usual',  icon: AlertTriangle, cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+  better: { text: 'Better than usual', icon: CircleCheck, cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+  worse:  { text: 'Worse than usual',  icon: TriangleExclamationPoint, cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
   higher: { text: 'Higher than usual', icon: ArrowUp,  cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
   lower:  { text: 'Lower than usual',  icon: ArrowDown, cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
   usual:  { text: 'About usual',       icon: Minus,    cls: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
@@ -33,8 +33,8 @@ export function Explainer({ field }) {
 
 /** The icon for an insight's tone, coloured like the verdict badges. */
 export function ToneIcon({ tone, size = 16 }) {
-  if (tone === 'better') return <CheckCircle2 size={size} className="shrink-0 text-green-600 dark:text-green-400" aria-label="better" />
-  if (tone === 'worse')  return <AlertTriangle size={size} className="shrink-0 text-red-600 dark:text-red-400" aria-label="worse" />
+  if (tone === 'better') return <CircleCheck size={size} className="shrink-0 text-green-600 dark:text-green-400" aria-label="better" />
+  if (tone === 'worse')  return <TriangleExclamationPoint size={size} className="shrink-0 text-red-600 dark:text-red-400" aria-label="worse" />
   return <Info size={size} className="shrink-0 text-gray-400" aria-hidden="true" />
 }
 

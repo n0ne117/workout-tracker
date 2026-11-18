@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { X, Loader2, TrendingUp } from 'lucide-react'
+import { X, LoaderCircle, TrendingUp } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../../hooks/useApi'
 import { formatDate } from '../../utils/format'
@@ -36,7 +36,7 @@ export default function ExerciseProgress({ exerciseId, currentWorkoutId, onClose
     .map(s => ({ date: s.date.slice(0, 10), value: s[measure], mean: s[measure] })), [data, measure])
 
   if (error) return <Frame onClose={onClose}><p className="text-sm text-red-600 dark:text-red-400">{error}</p></Frame>
-  if (!data) return <Frame onClose={onClose}><Loader2 size={16} className="animate-spin text-gray-400" /></Frame>
+  if (!data) return <Frame onClose={onClose}><LoaderCircle size={16} className="animate-spin text-gray-400" /></Frame>
 
   const sessions = data.sessions
   const weighted = sessions.filter(s => s.best_weight != null)

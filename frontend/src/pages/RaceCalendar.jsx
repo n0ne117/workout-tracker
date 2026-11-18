@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { api } from '../hooks/useApi'
 import {
-  Loader2, Plus, X, Save, Pencil, Trash2,
+  LoaderCircle, Plus, X, Save, Pencil, Trash,
   CalendarDays, MapPin, ExternalLink, Package,
-  CheckCircle2, CircleDot, Clock, HelpCircle, XCircle, MinusCircle
+  CircleCheck, CircleDot, Clock, CircleQuestionMark, CircleX, CircleMinus
 } from 'lucide-react'
 import { formatDate } from '../utils/format'
 import clsx from 'clsx'
@@ -12,11 +12,11 @@ import clsx from 'clsx'
 
 const STATUSES = [
   { key: 'planned',    label: 'Planned',    icon: Clock,        color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
-  { key: 'maybe',      label: 'Maybe',      icon: HelpCircle,   color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  { key: 'maybe',      label: 'Maybe',      icon: CircleQuestionMark,   color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
   { key: 'registered', label: 'Registered', icon: CircleDot,    color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400' },
-  { key: 'completed',  label: 'Completed',  icon: CheckCircle2, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  { key: 'dnf',        label: 'DNF',        icon: XCircle,      color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' },
-  { key: 'dns',        label: 'DNS',        icon: MinusCircle,  color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
+  { key: 'completed',  label: 'Completed',  icon: CircleCheck, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  { key: 'dnf',        label: 'DNF',        icon: CircleX,      color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' },
+  { key: 'dns',        label: 'DNS',        icon: CircleMinus,  color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
 ]
 
 const RESULT_STATUSES = new Set(['completed', 'dnf', 'dns'])
@@ -135,7 +135,7 @@ function RaceRow({ race, onEdit, onDelete }) {
       {/* Actions */}
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(race)} className="btn-ghost p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={13} /></button>
-        <button onClick={() => onDelete(race)} className="btn-ghost p-1.5 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+        <button onClick={() => onDelete(race)} className="btn-ghost p-1.5 text-gray-400 hover:text-red-500"><Trash size={13} /></button>
       </div>
     </div>
   )
@@ -176,9 +176,9 @@ function ResultNudge({ race, onStatusSet }) {
       {/* Quick-set buttons */}
       <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
         {[
-          { status: 'completed', label: 'Completed', icon: CheckCircle2, cls: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50' },
-          { status: 'dnf',       label: 'DNF',       icon: XCircle,      cls: 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50' },
-          { status: 'dns',       label: 'DNS',       icon: MinusCircle,  cls: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700' },
+          { status: 'completed', label: 'Completed', icon: CircleCheck, cls: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50' },
+          { status: 'dnf',       label: 'DNF',       icon: CircleX,      cls: 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50' },
+          { status: 'dns',       label: 'DNS',       icon: CircleMinus,  cls: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700' },
         ].map(({ status, label, icon: Icon, cls }) => (
           <button
             key={status}
@@ -186,7 +186,7 @@ function ResultNudge({ race, onStatusSet }) {
             disabled={!!saving}
             className={clsx('inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors', cls)}
           >
-            {saving === status ? <Loader2 size={12} className="animate-spin" /> : <Icon size={12} />}
+            {saving === status ? <LoaderCircle size={12} className="animate-spin" /> : <Icon size={12} />}
             {label}
           </button>
         ))}
@@ -322,7 +322,7 @@ function RaceModal({ initial, onClose, onSaved }) {
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
             <button type="submit" disabled={saving} className="btn btn-primary">
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {saving ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}
               {isEdit ? 'Save changes' : 'Add race'}
             </button>
           </div>
@@ -345,7 +345,7 @@ function DeleteConfirm({ race, onConfirm, onCancel, deleting }) {
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className="btn btn-secondary">Cancel</button>
           <button onClick={onConfirm} disabled={deleting} className="btn btn-danger">
-            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {deleting ? <LoaderCircle size={14} className="animate-spin" /> : <Trash size={14} />}
             Delete
           </button>
         </div>
@@ -416,7 +416,7 @@ export default function RaceCalendar() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 size={28} className="animate-spin text-brand-500" /></div>
+        <div className="flex justify-center py-16"><LoaderCircle size={28} className="animate-spin text-brand-500" /></div>
       ) : (
         <>
           {/* Stats */}

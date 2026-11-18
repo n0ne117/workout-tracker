@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
 import { api } from '../hooks/useApi'
 import {
-  ArrowLeft, Pencil, Trash2, Save, X,
+  ArrowLeft, Pencil, Trash, Save, X,
   Footprints, Bike, Zap, Package,
   Map, Clock, Activity, Calendar, ChevronDown, ChevronRight,
-  Loader2, ToggleLeft, ToggleRight, MapPin
+  LoaderCircle, ToggleLeft, ToggleRight, MapPin
 } from 'lucide-react'
 import { formatDate, formatDistance, formatDuration, formatSport } from '../utils/format'
 import SportIcon from '../components/SportIcon'
@@ -152,7 +152,7 @@ export default function GearDetail() {
 
   if (loading) return (
     <div className="flex justify-center py-16">
-      <Loader2 size={28} className="animate-spin text-brand-500" />
+      <LoaderCircle size={28} className="animate-spin text-brand-500" />
     </div>
   )
   if (!item) return null
@@ -182,13 +182,13 @@ export default function GearDetail() {
                 <>
                   <span className="text-xs text-gray-500">Are you sure?</span>
                   <button onClick={deleteItem} disabled={deleting} className="btn gap-1 bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1.5">
-                    {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Delete
+                    {deleting ? <LoaderCircle size={13} className="animate-spin" /> : <Trash size={13} />} Delete
                   </button>
                   <button onClick={() => setConfirmDelete(false)} className="btn btn-secondary">Cancel</button>
                 </>
               ) : (
                 <button onClick={() => setConfirmDelete(true)} className="btn btn-secondary p-2 text-gray-400 hover:text-red-500">
-                  <Trash2 size={15} />
+                  <Trash size={15} />
                 </button>
               )}
             </>
@@ -198,7 +198,7 @@ export default function GearDetail() {
                 <X size={14} /> Cancel
               </button>
               <button onClick={save} disabled={saving || !form.name.trim()} className="btn btn-primary gap-1.5">
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
+                {saving ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />} Save
               </button>
             </>
           )}
@@ -349,7 +349,7 @@ export default function GearDetail() {
           <div className="border-t border-gray-100 dark:border-gray-800">
             {workoutsLoading ? (
               <div className="flex justify-center py-6">
-                <Loader2 size={20} className="animate-spin text-brand-500" />
+                <LoaderCircle size={20} className="animate-spin text-brand-500" />
               </div>
             ) : workouts.length === 0 ? (
               <p className="px-5 py-4 text-sm text-gray-400">No activities linked yet.</p>

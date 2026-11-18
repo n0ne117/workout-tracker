@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Plus, X, Loader2 } from 'lucide-react'
+import { Search, Plus, X, LoaderCircle } from 'lucide-react'
 import { api } from '../../hooks/useApi'
 import MuscleGroupPicker from './MuscleGroupPicker'
 
@@ -55,7 +55,7 @@ export default function ExercisePicker({ exercises, groups, onPick, onCreated, o
           {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
           <div className="flex gap-2">
             <button onClick={create} disabled={saving || !creating.primary.length} className="btn-primary py-1.5 text-xs">
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Create and add
+              {saving ? <LoaderCircle size={13} className="animate-spin" /> : <Plus size={13} />} Create and add
             </button>
             <button onClick={() => setCreating(null)} className="btn-ghost py-1.5 text-xs">Back</button>
           </div>

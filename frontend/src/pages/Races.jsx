@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { api, buildWorkoutQuery } from '../hooks/useApi'
 import WorkoutTable from '../components/WorkoutTable'
 import FilterBar from '../components/FilterBar'
-import { Trophy, Ruler, Zap, Loader2 } from 'lucide-react'
+import { Trophy, Ruler, Zap, LoaderCircle } from 'lucide-react'
 import { formatDuration, formatDistance, formatPace } from '../utils/format'
 
 // Distances in meters with ±tolerance
@@ -126,7 +126,7 @@ export default function Races() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 size={28} className="animate-spin text-brand-500" />
+          <LoaderCircle size={28} className="animate-spin text-brand-500" />
         </div>
       ) : workouts.length === 0 ? (
         <div className="card p-12 text-center text-gray-400 dark:text-gray-600">

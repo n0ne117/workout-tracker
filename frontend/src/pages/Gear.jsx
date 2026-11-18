@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import { api } from '../hooks/useApi'
-import { Loader2, Plus, X, Footprints, Bike, Zap, Package, ChevronDown, ChevronRight } from 'lucide-react'
+import { LoaderCircle, Plus, X, Footprints, Bike, Zap, Package, ChevronDown, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 
 const GEAR_TYPES = [
@@ -169,7 +169,7 @@ function AddModal({ onClose, onCreated }) {
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
             <button type="submit" disabled={saving || !form.name.trim()} className="btn btn-primary">
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              {saving ? <LoaderCircle size={14} className="animate-spin" /> : <Plus size={14} />}
               Add
             </button>
           </div>
@@ -213,7 +213,7 @@ export default function Gear() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 size={28} className="animate-spin text-brand-500" />
+          <LoaderCircle size={28} className="animate-spin text-brand-500" />
         </div>
       ) : items.length === 0 ? (
         <div className="card p-12 text-center text-gray-400">

@@ -18,7 +18,3 @@ reps. Importing them would remove the double entry. Three possible sources:
   categories onto the German catalog. Covers sessions logged on the watch.
 - **Hevy API** — complete data, but requires a Hevy Pro subscription.
 - **Garmin personal API** — available, not in use yet.
-
-## Deliberately deferred
-
-- **lucide-react 1.x** — icons only, with renames to chase; no gain yet.

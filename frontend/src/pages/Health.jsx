@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { HeartPulse, Loader2, RefreshCw, Table2, ChevronDown, ChevronRight } from 'lucide-react'
+import { HeartPulse, LoaderCircle, RefreshCw, Table2, ChevronDown, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'
 import { WELLNESS_CHANGED } from '../hooks/useIntervalsSync'
@@ -105,7 +105,7 @@ export default function Health() {
     return (
       <div className="space-y-6">
         {header}
-        <div className="card p-10 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>
+        <div className="card p-10 flex justify-center"><LoaderCircle className="animate-spin text-gray-400" /></div>
       </div>
     )
   }
@@ -132,7 +132,7 @@ export default function Health() {
               much of it from Apple Health. Import it once; every sync keeps it current after that.
             </p>
             <button onClick={() => sync(true)} disabled={syncing} className="btn-primary mx-auto">
-              {syncing ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+              {syncing ? <LoaderCircle size={15} className="animate-spin" /> : <RefreshCw size={15} />}
               {syncing ? 'Importing history…' : 'Import health history'}
             </button>
             {syncNote && <p className="text-xs text-gray-500 dark:text-gray-400">{syncNote}</p>}

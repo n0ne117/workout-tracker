@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router'
 import {
-  Activity, Trophy, BarChart2, Settings, Sun, Moon, RefreshCw, Bike, Flag,
-  CalendarDays, FlaskConical, CheckCircle, AlertCircle, X, MoreHorizontal, WifiOff, HeartPulse,
+  Activity, Trophy, ChartNoAxesColumn, Settings, Sun, Moon, RefreshCw, Bike, Flag,
+  CalendarDays, FlaskConical, CircleCheckBig, CircleExclamationPoint, X, Ellipsis, WifiOff, HeartPulse,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useTheme } from '../hooks/useTheme'
@@ -24,7 +24,7 @@ import { useServerUnreachable } from '../hooks/useApi'
 // `primary: true` earns a slot in the phone tab bar.
 export const NAV_ITEMS = [
   { to: '/',              label: 'Workouts', short: 'Workouts', icon: Activity,     exact: true, primary: true },
-  { to: '/stats',         label: 'Stats',    short: 'Stats',    icon: BarChart2,    primary: true },
+  { to: '/stats',         label: 'Stats',    short: 'Stats',    icon: ChartNoAxesColumn,    primary: true },
   { to: '/races',         label: 'Races',    short: 'Races',    icon: Trophy,       primary: true },
   { to: '/gear',          label: 'Gear',     short: 'Gear',     icon: Bike },
   { to: '/conqueror',     label: 'Conqueror',short: 'Conqueror',icon: Flag },
@@ -36,7 +36,7 @@ export const NAV_ITEMS = [
 
 const TAB_ITEMS = [
   ...NAV_ITEMS.filter(i => i.primary),
-  { to: '/more', label: 'More', short: 'More', icon: MoreHorizontal },
+  { to: '/more', label: 'More', short: 'More', icon: Ellipsis },
 ]
 
 function isActive(item, pathname) {
@@ -83,8 +83,8 @@ function SyncBanner({ sync }) {
       )}
     >
       {state === 'running' && <RefreshCw size={16} className="animate-spin shrink-0 text-brand-500" />}
-      {state === 'done'    && <CheckCircle size={16} className="shrink-0 text-green-500" />}
-      {state === 'error'   && <AlertCircle size={16} className="shrink-0 text-red-500" />}
+      {state === 'done'    && <CircleCheckBig size={16} className="shrink-0 text-green-500" />}
+      {state === 'error'   && <CircleExclamationPoint size={16} className="shrink-0 text-red-500" />}
 
       <div className="flex-1 min-w-0">
         {state === 'running' && (

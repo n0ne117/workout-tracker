@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router'
-import { ChevronRight, ChevronDown, Trophy, Loader2, Activity, MapPin } from 'lucide-react'
+import { ChevronRight, ChevronDown, Trophy, LoaderCircle, Activity, MapPin } from 'lucide-react'
 import {
   formatDuration, formatDistance, formatWorkoutRate, formatTime, movingSeconds,
 } from '../utils/format'
@@ -500,7 +500,7 @@ export default function WorkoutTable({
       {hasMore && (
         <div className="border-t border-gray-100 dark:border-gray-800 p-3 flex justify-center">
           <button onClick={onLoadMore} disabled={loadingMore} className="btn-secondary text-sm">
-            {loadingMore ? <Loader2 size={15} className="animate-spin" /> : null}
+            {loadingMore ? <LoaderCircle size={15} className="animate-spin" /> : null}
             {loadingMore ? 'Loading…' : 'Load more'}
           </button>
         </div>

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../hooks/useApi'
 import {
-  CheckCircle, AlertCircle, Loader2,
-  Download, X, Trash2,
-  Upload, ArchiveRestore, HardDriveDownload, FileCheck2,
-  FileWarning, FilePlus2
+  CircleCheckBig, CircleExclamationPoint, LoaderCircle,
+  Download, X, Trash,
+  Upload, ArchiveArrowUp, HardDriveDownload, FileCheckCorner,
+  FileExclamationPoint, FilePlusCorner
 } from 'lucide-react'
 import { formatDatetime, formatBytes } from '../utils/format'
 import clsx from 'clsx'
@@ -155,10 +155,10 @@ function GpsUploadSection() {
               : entry.status === 'uploading'? 'bg-blue-50 dark:bg-blue-900/20'
               : 'bg-gray-50 dark:bg-gray-800'}`}
             >
-              {entry.status === 'uploading' && <Loader2 size={15} className="animate-spin text-blue-500 shrink-0" />}
-              {entry.status === 'done'      && <FileCheck2 size={15} className="text-green-500 shrink-0" />}
-              {entry.status === 'error'     && <FileWarning size={15} className="text-red-500 shrink-0" />}
-              {entry.status === 'pending'   && <FilePlus2 size={15} className="text-gray-400 shrink-0" />}
+              {entry.status === 'uploading' && <LoaderCircle size={15} className="animate-spin text-blue-500 shrink-0" />}
+              {entry.status === 'done'      && <FileCheckCorner size={15} className="text-green-500 shrink-0" />}
+              {entry.status === 'error'     && <FileExclamationPoint size={15} className="text-red-500 shrink-0" />}
+              {entry.status === 'pending'   && <FilePlusCorner size={15} className="text-gray-400 shrink-0" />}
 
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{entry.file.name}</p>
@@ -193,7 +193,7 @@ function GpsUploadSection() {
               className="btn-primary flex-1 justify-center"
             >
               {busy
-                ? <><Loader2 size={15} className="animate-spin" /> Importing…</>
+                ? <><LoaderCircle size={15} className="animate-spin" /> Importing…</>
                 : <><Upload size={15} /> Import {pendingCount} file{pendingCount !== 1 ? 's' : ''}</>
               }
             </button>
@@ -308,7 +308,7 @@ function BackupSection() {
           className="btn-secondary justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {downloading && download.type === 'workouts'
-            ? <Loader2 size={16} className="animate-spin" />
+            ? <LoaderCircle size={16} className="animate-spin" />
             : <HardDriveDownload size={16} />}
           <div className="text-left">
             <div className="font-medium">Backup Workouts</div>
@@ -321,7 +321,7 @@ function BackupSection() {
           className="btn-primary justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {downloading && download.type === 'full'
-            ? <Loader2 size={16} className="animate-spin" />
+            ? <LoaderCircle size={16} className="animate-spin" />
             : <HardDriveDownload size={16} />}
           <div className="text-left">
             <div className="font-medium">Backup Everything</div>
@@ -388,8 +388,8 @@ function BackupSection() {
           className="btn-secondary gap-2"
         >
           {restoring
-            ? <Loader2 size={15} className="animate-spin" />
-            : <ArchiveRestore size={15} />
+            ? <LoaderCircle size={15} className="animate-spin" />
+            : <ArchiveArrowUp size={15} />
           }
           {restoring ? 'Restoring…' : 'Choose backup file…'}
         </button>
@@ -464,7 +464,7 @@ function DangerZone() {
             bg-red-600 hover:bg-red-700 active:bg-red-800 text-white
             disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+          {deleting ? <LoaderCircle size={15} className="animate-spin" /> : <Trash size={15} />}
           Delete All
         </button>
       </div>
@@ -743,7 +743,7 @@ function IntervalsSection() {
         <div className="flex items-center gap-3">
           {connected && (
             <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 font-medium">
-              <CheckCircle size={16} /> Key saved
+              <CircleCheckBig size={16} /> Key saved
             </span>
           )}
           <button
@@ -824,7 +824,7 @@ function IntervalsSection() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
             <span className="flex items-center gap-1.5">
-              <Loader2 size={12} className="animate-spin" />
+              <LoaderCircle size={12} className="animate-spin" />
               {progress.total > 0 ? 'Importing activities…' : 'Fetching activity list…'}
             </span>
             {progress.total > 0 && (
@@ -882,18 +882,18 @@ function IntervalsSection() {
           <div className="space-y-1 text-xs text-gray-400">
             {backfillStatus.phase === 'streams' && (
               <p className="flex items-center gap-1.5">
-                <Loader2 size={12} className="animate-spin" />
+                <LoaderCircle size={12} className="animate-spin" />
                 Phase 1/2 — Streams: {backfillStatus.streams_done} / {backfillStatus.streams_total}
               </p>
             )}
             {backfillStatus.phase === 'metrics' && (
               <p className="flex items-center gap-1.5">
-                <Loader2 size={12} className="animate-spin" />
+                <LoaderCircle size={12} className="animate-spin" />
                 Phase 2/2 — Metrics: {backfillStatus.metrics_done} / {backfillStatus.metrics_total}
               </p>
             )}
             {!backfillStatus.phase && (
-              <p className="flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" />Starting…</p>
+              <p className="flex items-center gap-1.5"><LoaderCircle size={12} className="animate-spin" />Starting…</p>
             )}
           </div>
         )}
