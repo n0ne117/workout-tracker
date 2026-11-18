@@ -21,6 +21,7 @@ import {
 } from '../utils/format'
 import clsx from 'clsx'
 import { hasDistance } from '../utils/track'
+import StrengthSection from '../components/strength/StrengthSection'
 
 const MAX_COMMENT = 500
 
@@ -478,6 +479,9 @@ export default function WorkoutDetail() {
 
       {/* Gear */}
       <GearSection workoutId={id} />
+
+      {/* Sets, volume and muscle split for strength sessions */}
+      {workout.sport === 'strength_training' && <StrengthSection workout={workout} />}
 
       {/* Map */}
       {workout.has_track && (

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { formatDatetime, formatBytes } from '../utils/format'
 import clsx from 'clsx'
+import ExerciseCatalog from '../components/strength/ExerciseCatalog'
 
 export default function Settings() {
   return (
@@ -25,6 +26,9 @@ export default function Settings() {
 
       {/* Automatic sync */}
       <SyncScheduleSection />
+
+      {/* Strength exercise catalog */}
+      <ExerciseCatalog />
 
       {/* Danger Zone */}
       <DangerZone />
