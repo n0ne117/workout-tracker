@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.13.1
+
+### Changed
+
+- **Icons library updated** (lucide-react 1.x), with the app moved to the
+  current icon names. Nothing changes on screen; every dependency is now on
+  its current major version.
+
 ## 1.13.0
 
 ### Changed
