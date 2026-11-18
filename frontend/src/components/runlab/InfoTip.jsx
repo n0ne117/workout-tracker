@@ -26,7 +26,9 @@ export default function InfoTip({ text }) {
   }, [open])
 
   return (
-    <div ref={ref} className="relative inline-block">
+    // Spans, not divs: the tip sits inside headings and paragraphs, where a
+    // <div> is invalid HTML (React 19 warns about it).
+    <span ref={ref} className="relative inline-block">
       <button
         onClick={() => setOpen(o => !o)}
         className="text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 transition-colors leading-none"
@@ -35,13 +37,13 @@ export default function InfoTip({ text }) {
         <Info size={13} />
       </button>
       {open && (
-        <div ref={popRef} style={{ transform: `translateX(${shift}px)` }}
-             className="absolute z-30 right-0 top-5 w-64 max-w-[calc(100vw-1rem)] p-3 rounded-xl
+        <span ref={popRef} style={{ transform: `translateX(${shift}px)` }}
+             className="block absolute z-30 right-0 top-5 w-64 max-w-[calc(100vw-1rem)] p-3 rounded-xl
                         bg-gray-900 dark:bg-gray-800 text-white text-xs leading-relaxed
                         shadow-xl border border-white/10">
           {text}
-        </div>
+        </span>
       )}
-    </div>
+    </span>
   )
 }

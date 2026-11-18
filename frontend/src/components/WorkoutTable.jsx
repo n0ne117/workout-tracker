@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { ChevronRight, ChevronDown, Trophy, Loader2, Activity, MapPin } from 'lucide-react'
 import {
   formatDuration, formatDistance, formatWorkoutRate, formatTime, movingSeconds,

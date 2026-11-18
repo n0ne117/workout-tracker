@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import AppShell from './components/AppShell'
 import Dashboard from './pages/Dashboard'
 import WorkoutDetail from './pages/WorkoutDetail'

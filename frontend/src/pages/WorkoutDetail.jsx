@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router'
 import { api } from '../hooks/useApi'
 import WorkoutMap from '../components/WorkoutMap'
 import WorkoutTrimmer from '../components/WorkoutTrimmer'

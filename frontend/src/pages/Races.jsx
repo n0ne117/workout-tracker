@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { api, buildWorkoutQuery } from '../hooks/useApi'
 import WorkoutTable from '../components/WorkoutTable'
 import FilterBar from '../components/FilterBar'

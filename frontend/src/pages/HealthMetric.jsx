@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'

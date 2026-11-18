@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { HeartPulse, Loader2, RefreshCw, Table2, ChevronDown, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../hooks/useApi'
