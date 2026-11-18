@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.10.0
+
+### Added
+
+- **Strength sessions.** Workouts of type Strength Training can now carry
+  their sets: exercise, weight and reps, grouped into rounds for circuits.
+  - A built-in catalog of about 55 exercises with German names — Milon and
+    gym machines, free weights, bodyweight — each with the muscle groups it
+    trains. Add your own any time, right from the session.
+  - Start from a **template** (e.g. "Milon Zirkel"), **like last time**, or
+    empty. Weights and reps pre-fill from the last time you did each
+    exercise; "Round 2" copies round 1.
+  - **Volume** (weight × reps, added up), sets, reps and rounds, and a
+    **muscle split** that always adds up to 100 % — counted by sets, main
+    muscles fully and assisting ones half.
+  - Manage the catalog under Settings → Strength exercises.
+  - Backups include sets, your own exercises and templates.
+
 ## 1.9.2
 
 ### Fixed
