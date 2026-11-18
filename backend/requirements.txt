@@ -1,9 +1,9 @@
-fastapi==0.159.1
+fastapi==0.163.2
 uvicorn[standard]==0.54.0
-sqlalchemy==2.1.6
-python-multipart==0.0.32
+sqlalchemy==2.1.9
+python-multipart==0.0.34
 fitparse==1.2.0
 gpxpy==1.6.2
-pydantic==2.14.1
+pydantic==2.14.3
 httpx==0.28.1
-tzdata==2026.5
+tzdata==2026.6

@@ -15,7 +15,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ── Stage 2: python deps ─────────────────────────────────────────────────────
-FROM python:3.12-slim AS deps
+FROM python:3.14-slim AS deps
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends gcc \
@@ -25,7 +25,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ── Stage 3: runtime ─────────────────────────────────────────────────────────
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.title="Workout Tracker" \
       org.opencontainers.image.description="Self-hosted training log with Intervals.icu, Garmin and FIT/GPX import" \
