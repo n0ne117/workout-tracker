@@ -4,7 +4,11 @@
 # image from source.
 
 # ── Stage 1: build the frontend ──────────────────────────────────────────────
-FROM node:22-alpine AS frontend
+# Debian, not Alpine: Rollup's native parser recurses deeper than musl's small
+# default thread stack allows, and from Rollup 4.68 it fails on React 19's
+# react-dom with a misleading "Code is nested too deeply". Only this build
+# stage is affected; nothing from it but the built files reaches the image.
+FROM node:22-slim AS frontend
 
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
