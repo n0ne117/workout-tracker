@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.13.0
+
+### Changed
+
+- **Under the hood: Tailwind 4 and Vite 8.** The styling and build tooling
+  are on their current major versions. The app looks the same — every page was
+  compared element by element before and after, in both themes and at phone
+  width; the only differences are a few pixels of spacing. The colours are
+  pinned to their previous values.
+- The remaining audit warnings from the old build tooling are gone, except one
+  build-time advisory that has no fixed release yet.
+
 ## 1.12.1
 
 Publishes 1.12.0: its image build failed before anything was released, so
