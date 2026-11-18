@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.1
+
+Publishes 1.12.0: its image build failed before anything was released, so
+1.12.0 never reached the registry. Everything listed under 1.12.0 ships here.
+
+### Fixed
+
+- The frontend is now built on Debian instead of Alpine Linux, where the
+  updated bundler failed on React 19.
+
 ## 1.12.0
 
 ### Changed
