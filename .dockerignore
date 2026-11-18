@@ -38,6 +38,7 @@ backend/requirements-dev.txt
 # Docs and host-only assets contribute nothing to the runtime image.
 README.md
 CHANGELOG.md
+ROADMAP.md
 LICENSE
 unraid/
 docker-compose*.yml
