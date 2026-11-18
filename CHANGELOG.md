@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.0
+
+### Added
+
+- **Progress per exercise.** In a logged strength session, tap an exercise to
+  see it across all your sessions: first, best and latest top set, how much
+  heavier you've got since the first session, a chart of best weight, volume
+  or reps, and every session with a link to it.
+
 ## 1.10.0
 
 ### Added
