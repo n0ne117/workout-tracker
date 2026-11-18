@@ -158,6 +158,9 @@ def _migrate_db():
             "DELETE FROM workout_gear WHERE workout_id NOT IN (SELECT id FROM workouts)"
             " OR gear_id NOT IN (SELECT id FROM gear_items)"
         ))
+        conn.execute(text(
+            "DELETE FROM strength_sets WHERE workout_id NOT IN (SELECT id FROM workouts)"
+        ))
         conn.commit()
 
         conn.execute(text(

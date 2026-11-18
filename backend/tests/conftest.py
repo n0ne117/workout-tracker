@@ -21,8 +21,8 @@ from fastapi.testclient import TestClient
 from app.database import SessionLocal, engine, init_db
 from app.main import app
 
-TABLES = ("workout_metrics", "workout_gear", "workouts", "gear_items",
-          "race_calendar", "challenges", "wellness", "app_settings")
+TABLES = ("workout_metrics", "workout_gear", "strength_sets", "strength_templates", "workouts",
+          "gear_items", "race_calendar", "challenges", "wellness", "app_settings")
 
 
 @pytest.fixture(scope="session")
@@ -37,6 +37,8 @@ def empty_db(client):
     with engine.begin() as conn:
         for table in TABLES:
             conn.exec_driver_sql(f"DELETE FROM {table}")
+        # The built-in catalog stays; exercises a test added go.
+        conn.exec_driver_sql("DELETE FROM exercises WHERE custom = 1")
     from app.cache import invalidate_stats_cache
     invalidate_stats_cache()
     yield

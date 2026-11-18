@@ -7,7 +7,10 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.cache import invalidate_stats_cache
 from app.database import get_db
-from app.models import Workout, GearItem, WorkoutGear, WorkoutMetrics, RaceEntry, ChallengeItem
+from app.models import (
+    Workout, GearItem, WorkoutGear, WorkoutMetrics, RaceEntry, ChallengeItem,
+    Exercise, StrengthSet, StrengthTemplate,
+)
 from app.services.timeutil import FILE_SOURCES, to_local, now_local
 
 router = APIRouter(prefix="/api/backup", tags=["backup"])
@@ -95,6 +98,40 @@ def _metrics_to_dict(m: WorkoutMetrics) -> dict:
     return {"workout_id": m.workout_id, **{f: getattr(m, f) for f in _METRIC_FIELDS}}
 
 
+def _strength_payload(db: Session) -> dict:
+    """Sets plus the exercises they name, so a restore can re-link both."""
+    return {
+        "exercises.json": [
+            {"id": e.id, "key": e.key, "name": e.name, "primary": e.primary,
+             "secondary": e.secondary, "custom": bool(e.custom)}
+            for e in db.query(Exercise).all()
+        ],
+        "strength_sets.json": [
+            {"workout_id": s.workout_id, "round": s.round, "position": s.position, "set_no": s.set_no,
+             "exercise_id": s.exercise_id, "weight_kg": s.weight_kg, "reps": s.reps}
+            for s in db.query(StrengthSet).all()
+        ],
+    }
+
+
+def _restore_exercises(db: Session, rows: list) -> dict:
+    """Backup exercise id → id here: catalog entries by key, yours by name (created if missing)."""
+    by_key = {e.key: e for e in db.query(Exercise).filter(Exercise.key.isnot(None))}
+    by_name = {e.name: e for e in db.query(Exercise).all()}
+    mapping = {}
+    for row in rows:
+        ex = by_key.get(row.get("key")) if row.get("key") else None
+        ex = ex or by_name.get(row.get("name"))
+        if ex is None:
+            ex = Exercise(name=row["name"], primary=row.get("primary") or [],
+                          secondary=row.get("secondary") or [], custom=True)
+            db.add(ex)
+            db.flush()
+            by_name[ex.name] = ex
+        mapping[row.get("id")] = ex.id
+    return mapping
+
+
 def _race_to_dict(r: RaceEntry) -> dict:
     return {
         "id": r.id,
@@ -175,6 +212,7 @@ def backup_workouts(db: Session = Depends(get_db)):
             "workout_metrics.json": [_metrics_to_dict(m) for m in metrics],
             "gear.json": [_gear_to_dict(g) for g in gear],
             "workout_gear.json": [{"workout_id": r.workout_id, "gear_id": r.gear_id} for r in wg_rows],
+            **_strength_payload(db),
         },
         f"workouts_backup_{ts}.zip",
     )
@@ -214,6 +252,11 @@ def backup_full(db: Session = Depends(get_db)):
             "workout_gear.json": [{"workout_id": r.workout_id, "gear_id": r.gear_id} for r in wg_rows],
             "races.json": [_race_to_dict(r) for r in races],
             "challenges.json": [_challenge_to_dict(c) for c in challenges],
+            **_strength_payload(db),
+            "strength_templates.json": [
+                {"name": t.name, "rounds": t.rounds, "exercise_ids": t.exercise_ids}
+                for t in db.query(StrengthTemplate).all()
+            ],
         },
         f"full_backup_{ts}.zip",
     )
@@ -251,6 +294,7 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
         # before links were included in workouts backups) cannot restore them.
         db.query(WorkoutGear).delete()
         db.query(WorkoutMetrics).delete()
+        db.query(StrengthSet).delete()
         db.query(Workout).delete()
         db.flush()
 
@@ -285,6 +329,18 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
                                           **{f: row.get(f) for f in _METRIC_FIELDS}))
                     count += 1
             stats["restored"]["workout_metrics"] = count
+
+        # ── Strength sets ────────────────────────────────────────────────────
+        if "strength_sets.json" in names:
+            ex_map = _restore_exercises(db, json.loads(zf.read("exercises.json"))) if "exercises.json" in names else {}
+            count = 0
+            for row in json.loads(zf.read("strength_sets.json")):
+                new_wid, new_eid = id_map.get(row.get("workout_id")), ex_map.get(row.get("exercise_id"))
+                if new_wid and new_eid:
+                    db.add(StrengthSet(workout_id=new_wid, exercise_id=new_eid,
+                                       **{k: row.get(k) for k in ("round", "position", "set_no", "weight_kg", "reps")}))
+                    count += 1
+            stats["restored"]["strength_sets"] = count
 
         if "workout_gear.json" not in names and db.query(GearItem).count():
             stats["errors"].append(
@@ -359,6 +415,18 @@ async def restore_backup(file: UploadFile = File(...), db: Session = Depends(get
             db.add(r)
             imported += 1
         stats["restored"]["races"] = imported
+
+    # ── Strength templates ───────────────────────────────────────────────────
+    if "strength_templates.json" in names and backup_type == "full":
+        ex_map = _restore_exercises(db, json.loads(zf.read("exercises.json"))) if "exercises.json" in names else {}
+        db.query(StrengthTemplate).delete()
+        count = 0
+        for row in json.loads(zf.read("strength_templates.json")):
+            ids = [ex_map[i] for i in row.get("exercise_ids") or [] if i in ex_map]
+            if ids:
+                db.add(StrengthTemplate(name=row["name"], rounds=row.get("rounds") or 1, exercise_ids=ids))
+                count += 1
+        stats["restored"]["strength_templates"] = count
 
     # ── Challenges ───────────────────────────────────────────────────────────
     if "challenges.json" in names and backup_type == "full":

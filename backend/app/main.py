@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.database import init_db
-from app.routers import workouts, files, intervals, gear, challenges, race_calendar, backup, runlab, wellness
+from app.routers import workouts, files, intervals, gear, challenges, race_calendar, backup, runlab, wellness, strength
 
 
 class _SafeEncoder(json.JSONEncoder):
@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     # on_event("startup") is deprecated in FastAPI 0.115.
     init_db()
     _seed_challenges()
+    _seed_exercises()
 
     from app.services import sync_scheduler
     scheduler = asyncio.create_task(sync_scheduler.run())
@@ -103,9 +104,24 @@ app.include_router(race_calendar.router)
 app.include_router(backup.router)
 app.include_router(runlab.router)
 app.include_router(wellness.router)
+app.include_router(strength.router)
 
 
 SEED_PATH = Path(os.environ.get("DATA_DIR", "/data")) / "challenges_seed.json"
+
+
+def _seed_exercises():
+    """Add any built-in strength exercises the database doesn't have yet."""
+    from app.database import SessionLocal
+    from app.services.strength import seed_catalog
+
+    db = SessionLocal()
+    try:
+        added = seed_catalog(db)
+        if added:
+            print(f"[seed] added {added} strength exercises to the catalog")
+    finally:
+        db.close()
 
 
 def _seed_challenges():

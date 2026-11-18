@@ -151,6 +151,48 @@ class WorkoutMetrics(Base):
     updated_at          = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
+class Exercise(Base):
+    """
+    A strength exercise and the muscle groups it trains.
+
+    Built-in catalog entries carry a stable `key` so later versions can add
+    to the catalog without duplicating; exercises you add have none.
+    """
+    __tablename__ = "exercises"
+
+    id        = Column(Integer, primary_key=True, index=True)
+    key       = Column(String, nullable=True, unique=True)
+    name      = Column(String, nullable=False)
+    primary   = Column(JSON, nullable=False)    # muscle groups worked most
+    secondary = Column(JSON, nullable=True)     # groups that help
+    custom    = Column(Boolean, default=False)
+
+
+class StrengthSet(Base):
+    """One set of a strength workout: which exercise, how heavy, how many."""
+    __tablename__ = "strength_sets"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    workout_id  = Column(Integer, ForeignKey("workouts.id"), index=True, nullable=False)
+    round       = Column(Integer, nullable=False, default=1)   # circuit lap
+    position    = Column(Integer, nullable=False, default=1)   # exercise order within the round
+    set_no      = Column(Integer, nullable=False, default=1)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    weight_kg   = Column(Float, nullable=True)
+    reps        = Column(Integer, nullable=True)
+
+
+class StrengthTemplate(Base):
+    """A saved routine — e.g. a circuit: exercises in order, laps to do."""
+    __tablename__ = "strength_templates"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    name         = Column(String, nullable=False)
+    rounds       = Column(Integer, nullable=False, default=1)
+    exercise_ids = Column(JSON, nullable=False)
+    created_at   = Column(DateTime, server_default=func.now())
+
+
 class WellnessDay(Base):
     """
     One day of Intervals.icu wellness data — resting HR, HRV, sleep, weight,
