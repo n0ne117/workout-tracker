@@ -83,7 +83,7 @@ function RaceRow({ race, onEdit, onDelete }) {
       past && !RESULT_STATUSES.has(race.status) && 'opacity-60'
     )}>
       {/* Date */}
-      <div className="w-20 flex-shrink-0 text-center">
+      <div className="w-20 shrink-0 text-center">
         <div className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
           {new Date(race.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
         </div>
@@ -94,7 +94,7 @@ function RaceRow({ race, onEdit, onDelete }) {
       </div>
 
       {/* Status */}
-      <div className="w-24 flex-shrink-0">
+      <div className="w-24 shrink-0">
         <StatusBadge status={race.status} />
       </div>
 
@@ -103,12 +103,12 @@ function RaceRow({ race, onEdit, onDelete }) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{race.name}</span>
           {race.distance && (
-            <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">{race.distance}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{race.distance}</span>
           )}
         </div>
         {race.location && (
           <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            <MapPin size={11} className="flex-shrink-0" />
+            <MapPin size={11} className="shrink-0" />
             <span className="truncate">{race.location}</span>
           </div>
         )}
@@ -118,7 +118,7 @@ function RaceRow({ race, onEdit, onDelete }) {
       </div>
 
       {/* Website */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {race.website ? (
           <a
             href={race.website.startsWith('http') ? race.website : `https://${race.website}`}
@@ -133,7 +133,7 @@ function RaceRow({ race, onEdit, onDelete }) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(race)} className="btn-ghost p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={13} /></button>
         <button onClick={() => onDelete(race)} className="btn-ghost p-1.5 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
       </div>
@@ -159,7 +159,7 @@ function ResultNudge({ race, onStatusSet }) {
   return (
     <div className="flex items-center gap-3 py-3 px-4 bg-amber-50 dark:bg-amber-900/10 border-l-2 border-amber-400">
       {/* Date */}
-      <div className="w-20 flex-shrink-0 text-center">
+      <div className="w-20 shrink-0 text-center">
         <div className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
           {new Date(race.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
         </div>
@@ -174,7 +174,7 @@ function ResultNudge({ race, onStatusSet }) {
       </div>
 
       {/* Quick-set buttons */}
-      <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
+      <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
         {[
           { status: 'completed', label: 'Completed', icon: CheckCircle2, cls: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50' },
           { status: 'dnf',       label: 'DNF',       icon: XCircle,      cls: 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50' },
@@ -249,7 +249,7 @@ function RaceModal({ initial, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <h2 className="font-semibold text-gray-900 dark:text-white">{isEdit ? 'Edit Race' : 'Add Race'}</h2>
           <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
         </div>

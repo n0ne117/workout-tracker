@@ -50,7 +50,7 @@ function GearCard({ item }) {
       <div className="flex items-start justify-between gap-2">
         <div className="font-semibold text-gray-900 dark:text-white truncate">{item.name}</div>
         {item.retired && (
-          <span className="text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded flex-shrink-0">
+          <span className="text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-sm shrink-0">
             Retired
           </span>
         )}

@@ -110,7 +110,7 @@ export default function IntensityDonut() {
       ) : (
         <div className="flex items-center gap-6">
           {/* Donut */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <svg width={120} height={120} viewBox="0 0 120 120">
               {slices.length > 0 ? slices.map((s, i) => (
                 <path
@@ -140,7 +140,7 @@ export default function IntensityDonut() {
               const pct  = total > 0 ? Math.round(secs / total * 100) : 0
               return (
                 <div key={z.key} className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${z.fill}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${z.fill}`} />
                   <span className="text-xs text-gray-500 dark:text-gray-400 flex-1 truncate">{z.label}</span>
                   <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 tabular-nums w-8 text-right">
                     {pct}%

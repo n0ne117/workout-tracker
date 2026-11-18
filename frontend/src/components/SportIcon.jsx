@@ -39,7 +39,7 @@ export default function SportIcon({
       aria-label={label}
       title={label}
       className={clsx(
-        'inline-flex items-center justify-center rounded-full flex-shrink-0',
+        'inline-flex items-center justify-center rounded-full shrink-0',
         sportSolidClass(sport),
         className,
       )}

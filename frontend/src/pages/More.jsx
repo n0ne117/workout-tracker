@@ -26,7 +26,7 @@ export default function More() {
             to={to}
             className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:bg-gray-50 dark:hover:bg-gray-800 dark:active:bg-gray-800 transition-colors"
           >
-            <span className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center flex-shrink-0">
+            <span className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center shrink-0">
               <Icon size={18} className="text-brand-500" />
             </span>
             <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">{label}</span>

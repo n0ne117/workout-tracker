@@ -144,10 +144,10 @@ export default function WeeklyVolumeBar() {
           {/* Legend */}
           <div className="flex items-center gap-4 mt-1 text-xs text-gray-400 dark:text-gray-500">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-2.5 rounded-sm bg-blue-400/70 inline-block" /> Weekly km
+              <span className="w-3 h-2.5 rounded-xs bg-blue-400/70 inline-block" /> Weekly km
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 bg-orange-400 inline-block rounded" /> 4-week avg
+              <span className="w-3 h-0.5 bg-orange-400 inline-block rounded-sm" /> 4-week avg
             </span>
           </div>
         </>

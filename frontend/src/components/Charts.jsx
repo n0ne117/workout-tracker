@@ -561,8 +561,8 @@ export function WalkRunChart({ trackPoints, hoverDist, onHoverChange }) {
             </span>
           ) : (
             <>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: WALK_COLOR }} />{walkPct}% walking ({walkKm.toFixed(1)} km)</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: RUN_COLOR }} />{100 - walkPct}% running</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-xs inline-block" style={{ background: WALK_COLOR }} />{walkPct}% walking ({walkKm.toFixed(1)} km)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-xs inline-block" style={{ background: RUN_COLOR }} />{100 - walkPct}% running</span>
             </>
           )}
         </div>

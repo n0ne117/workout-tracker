@@ -112,7 +112,7 @@ export default function CurrentShapeCards() {
         </div>
         {data?.acwr != null && (
           <div className="flex items-center gap-2 mt-2.5">
-            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ACWR_DOT[data.acwr_status] ?? 'bg-gray-300'}`} />
+            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${ACWR_DOT[data.acwr_status] ?? 'bg-gray-300'}`} />
             <span className="text-xs text-gray-500 dark:text-gray-400">
               ACWR {data.acwr} · {ACWR_LABEL[data.acwr_status] ?? '—'}
             </span>

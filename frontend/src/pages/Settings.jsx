@@ -155,10 +155,10 @@ function GpsUploadSection() {
               : entry.status === 'uploading'? 'bg-blue-50 dark:bg-blue-900/20'
               : 'bg-gray-50 dark:bg-gray-800'}`}
             >
-              {entry.status === 'uploading' && <Loader2 size={15} className="animate-spin text-blue-500 flex-shrink-0" />}
-              {entry.status === 'done'      && <FileCheck2 size={15} className="text-green-500 flex-shrink-0" />}
-              {entry.status === 'error'     && <FileWarning size={15} className="text-red-500 flex-shrink-0" />}
-              {entry.status === 'pending'   && <FilePlus2 size={15} className="text-gray-400 flex-shrink-0" />}
+              {entry.status === 'uploading' && <Loader2 size={15} className="animate-spin text-blue-500 shrink-0" />}
+              {entry.status === 'done'      && <FileCheck2 size={15} className="text-green-500 shrink-0" />}
+              {entry.status === 'error'     && <FileWarning size={15} className="text-red-500 shrink-0" />}
+              {entry.status === 'pending'   && <FilePlus2 size={15} className="text-gray-400 shrink-0" />}
 
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{entry.file.name}</p>
@@ -174,7 +174,7 @@ function GpsUploadSection() {
               </div>
 
               {entry.status !== 'uploading' && (
-                <button onClick={() => removeFile(entry.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0">
+                <button onClick={() => removeFile(entry.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 shrink-0">
                   <X size={14} />
                 </button>
               )}
@@ -347,7 +347,7 @@ function BackupSection() {
               {download.phase === 'error'       && `Backup failed: ${download.error}`}
             </span>
             {(download.phase === 'downloading' || download.phase === 'done') && (
-              <span className="flex-shrink-0 tabular-nums text-xs opacity-80">
+              <span className="shrink-0 tabular-nums text-xs opacity-80">
                 {download.phase === 'done'
                   ? formatBytes(download.loaded)
                   : `${formatBytes(download.loaded)}${download.total ? ` / ${formatBytes(download.total)}` : ''}`}
@@ -373,6 +373,15 @@ function BackupSection() {
             Upload a ZIP archive previously downloaded from this app. Existing data will be replaced.
           </p>
         </div>
+        {/* Ahead of the button: as the last child, a hidden element would make
+            space-y add a gap under the button. */}
+        <input
+          ref={restoreRef}
+          type="file"
+          accept=".zip"
+          className="hidden"
+          onChange={handleRestore}
+        />
         <button
           onClick={() => restoreRef.current?.click()}
           disabled={restoring}
@@ -384,13 +393,6 @@ function BackupSection() {
           }
           {restoring ? 'Restoring…' : 'Choose backup file…'}
         </button>
-        <input
-          ref={restoreRef}
-          type="file"
-          accept=".zip"
-          className="hidden"
-          onChange={handleRestore}
-        />
 
         {restoreResult && (
           <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-sm space-y-1">
@@ -458,7 +460,7 @@ function DangerZone() {
         <button
           onClick={deleteAllWorkouts}
           disabled={deleting}
-          className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+          className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
             bg-red-600 hover:bg-red-700 active:bg-red-800 text-white
             disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
@@ -537,12 +539,12 @@ function SyncScheduleSection() {
           aria-checked={schedule.enabled}
           aria-label="Automatic sync"
           className={clsx(
-            'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors',
+            'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
             schedule.enabled ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-700',
           )}
         >
           <span className={clsx(
-            'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform',
+            'inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform',
             schedule.enabled ? 'translate-x-6' : 'translate-x-1',
           )} />
         </button>

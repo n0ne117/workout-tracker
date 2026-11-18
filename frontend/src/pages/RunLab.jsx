@@ -11,7 +11,7 @@ export default function RunLab() {
 
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center shrink-0">
           <FlaskConical size={19} className="text-brand-600 dark:text-brand-400" />
         </div>
         <div>

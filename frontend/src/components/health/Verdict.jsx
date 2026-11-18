@@ -33,9 +33,9 @@ export function Explainer({ field }) {
 
 /** The icon for an insight's tone, coloured like the verdict badges. */
 export function ToneIcon({ tone, size = 16 }) {
-  if (tone === 'better') return <CheckCircle2 size={size} className="flex-shrink-0 text-green-600 dark:text-green-400" aria-label="better" />
-  if (tone === 'worse')  return <AlertTriangle size={size} className="flex-shrink-0 text-red-600 dark:text-red-400" aria-label="worse" />
-  return <Info size={size} className="flex-shrink-0 text-gray-400" aria-hidden="true" />
+  if (tone === 'better') return <CheckCircle2 size={size} className="shrink-0 text-green-600 dark:text-green-400" aria-label="better" />
+  if (tone === 'worse')  return <AlertTriangle size={size} className="shrink-0 text-red-600 dark:text-red-400" aria-label="worse" />
+  return <Info size={size} className="shrink-0 text-gray-400" aria-hidden="true" />
 }
 
 export const TONE_TEXT = {

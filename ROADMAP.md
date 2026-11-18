@@ -21,9 +21,4 @@ reps. Importing them would remove the double entry. Three possible sources:
 
 ## Deliberately deferred
 
-- **Tailwind 4 and Vite 8** — together, as one release. Tailwind 4 moves its
-  configuration into CSS and changes defaults (border colours, shadow and ring
-  sizes, the custom gray palette behind dark mode), so every page needs a visual
-  check. Clears the remaining `npm audit` warnings, all in build-time tooling
-  that never ships in the image. (React 19 and React Router 7 landed in 1.12.0.)
 - **lucide-react 1.x** — icons only, with renames to chase; no gain yet.

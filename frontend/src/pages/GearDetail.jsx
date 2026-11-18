@@ -53,7 +53,7 @@ function ProgressBar({ current, max, unit }) {
 function StatBlock({ icon, label, value, sub }) {
   return (
     <div className="card p-4 flex items-center gap-3">
-      <div className="text-brand-500 dark:text-brand-400 flex-shrink-0">{icon}</div>
+      <div className="text-brand-500 dark:text-brand-400 shrink-0">{icon}</div>
       <div>
         <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
         <div className="text-xl font-bold text-gray-900 dark:text-white tabular-nums">{value}</div>
@@ -255,7 +255,7 @@ export default function GearDetail() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-gray-500 dark:text-gray-400">{typeLabel(item.type)}</span>
                 {item.retired && (
-                  <span className="text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-sm">
                     Retired
                   </span>
                 )}
@@ -370,7 +370,7 @@ export default function GearDetail() {
                       </div>
                       <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{w.title}</div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                    <div className="flex items-center gap-3 shrink-0 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
                       {w.distance_meters && (
                         <span className="flex items-center gap-1">
                           <MapPin size={11} />{formatDistance(w.distance_meters)}

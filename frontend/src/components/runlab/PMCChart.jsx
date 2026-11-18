@@ -129,9 +129,9 @@ export default function PMCChart() {
         <div className="flex items-center gap-4">
           {/* Legend */}
           <div className="hidden sm:flex items-center gap-3 text-xs text-gray-400">
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-blue-500 inline-block rounded" /> Fitness</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-400 inline-block rounded" /> Fatigue</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-green-500 inline-block rounded" /> Form</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-blue-500 inline-block rounded-sm" /> Fitness</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-400 inline-block rounded-sm" /> Fatigue</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-green-500 inline-block rounded-sm" /> Form</span>
           </div>
           {/* Range picker */}
           <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 text-xs">

@@ -246,14 +246,14 @@ export function MobileZoneChart({ zoneTimes, zoneColors, title }) {
           const bg = zoneColors[i] ?? '#9ca3af'
           return (
             <div key={i} className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-gray-400 w-5 flex-shrink-0">Z{i + 1}</span>
+              <span className="text-[11px] font-medium text-gray-400 w-5 shrink-0">Z{i + 1}</span>
               <div className="flex-1 h-4 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pct}%`, backgroundColor: bg }}
                 />
               </div>
-              <span className="text-[11px] text-gray-400 w-14 text-right flex-shrink-0 tabular-nums">
+              <span className="text-[11px] text-gray-400 w-14 text-right shrink-0 tabular-nums">
                 {fmtZoneTime(secs)}
               </span>
             </div>

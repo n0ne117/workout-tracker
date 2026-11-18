@@ -42,7 +42,7 @@ export default function ExercisePicker({ exercises, groups, onPick, onCreated, o
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg p-3 space-y-2">
       <div className="flex items-center gap-2">
-        <Search size={15} className="text-gray-400 flex-shrink-0" />
+        <Search size={15} className="text-gray-400 shrink-0" />
         <input ref={inputRef} value={q} onChange={e => { setQ(e.target.value); setCreating(null) }}
                placeholder="Search exercises — e.g. Latzug, Beine…" className="input py-1.5" />
         <button onClick={onClose} className="btn-ghost p-1.5" aria-label="Close"><X size={15} /></button>

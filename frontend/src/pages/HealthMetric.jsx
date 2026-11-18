@@ -141,7 +141,7 @@ function MetricBody({ field, days, range, onRange }) {
             <button key={r.key} onClick={() => onRange(r.key)}
                     className={clsx('px-3 py-1 rounded-md text-xs font-medium transition-colors',
                       range === r.key
-                        ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                        ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs'
                         : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200')}>
               {r.label}
             </button>
@@ -150,8 +150,8 @@ function MetricBody({ field, days, range, onRange }) {
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-brand-500/40" /> each day</span>
-        <span className="inline-flex items-center gap-1.5"><span className="w-4 h-0.5 rounded bg-brand-600 dark:bg-brand-500" /> 7-day average</span>
-        <span className="inline-flex items-center gap-1.5"><span className="w-4 h-2.5 rounded-sm bg-gray-200 dark:bg-gray-700" /> your usual range (4-week average ± typical swing)</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-4 h-0.5 rounded-sm bg-brand-600 dark:bg-brand-500" /> 7-day average</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-4 h-2.5 rounded-xs bg-gray-200 dark:bg-gray-700" /> your usual range (4-week average ± typical swing)</span>
       </p>
       {shown.length >= 2
         ? <TrendChart field={field} series={shown} band={shownBand} domain={[from, today]} height={280}

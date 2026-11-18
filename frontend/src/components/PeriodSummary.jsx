@@ -88,7 +88,7 @@ export default function PeriodSummary() {
               className={clsx(
                 'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
                 period === p.key
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs'
                   : 'text-gray-500 dark:text-gray-400',
               )}
             >

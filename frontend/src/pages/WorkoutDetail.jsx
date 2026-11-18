@@ -221,9 +221,9 @@ function CommentCard({ workoutId, initialNotes, onSaved }) {
         >
           {text ? (
             <div className="flex items-start gap-2">
-              <MessageSquare size={15} className="text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
+              <MessageSquare size={15} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap flex-1">{text}</p>
-              <Pencil size={13} className="text-gray-300 dark:text-gray-600 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
+              <Pencil size={13} className="text-gray-300 dark:text-gray-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
             </div>
           ) : (
             <div className="flex items-center gap-2 text-gray-400 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-500 transition-colors">
@@ -401,7 +401,7 @@ export default function WorkoutDetail() {
                 id="is_race"
                 checked={form.is_race}
                 onChange={e => setForm(f => ({ ...f, is_race: e.target.checked }))}
-                className="w-4 h-4 rounded accent-brand-600"
+                className="w-4 h-4 rounded-sm accent-brand-600"
               />
               <label htmlFor="is_race" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                 <Trophy size={14} className="text-yellow-500" /> Mark as Race
@@ -445,7 +445,7 @@ export default function WorkoutDetail() {
                 </p>
               )}
             </div>
-            <div className="flex gap-1.5 flex-shrink-0">
+            <div className="flex gap-1.5 shrink-0">
               <button onClick={startEdit} className="btn-secondary px-2.5 py-2" title="Edit details">
                 <Pencil size={15} />
               </button>

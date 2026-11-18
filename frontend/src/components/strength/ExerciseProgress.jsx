@@ -79,7 +79,7 @@ export default function ExerciseProgress({ exerciseId, currentWorkoutId, onClose
             {MEASURES.map(x => (
               <button key={x.key} onClick={() => setMeasure(x.key)}
                       className={clsx('px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                        measure === x.key ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                        measure === x.key ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs'
                                           : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200')}>
                 {x.label}
               </button>

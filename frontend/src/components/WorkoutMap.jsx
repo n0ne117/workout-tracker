@@ -133,12 +133,12 @@ export default function WorkoutMap({ trackPoints, bbox }) {
         className="h-[303px] sm:h-[399px] w-full rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800"
       />
       <div className="flex items-center gap-2 mt-2 px-1">
-        <span className="text-[11px] text-gray-400 dark:text-gray-500 flex-shrink-0">Slower</span>
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">Slower</span>
         <div
           className="flex-1 h-2 rounded-full"
           style={{ background: 'linear-gradient(to right, rgb(37,99,235), rgb(6,182,212), rgb(34,197,94), rgb(234,179,8), rgb(249,115,22), rgb(239,68,68))' }}
         />
-        <span className="text-[11px] text-gray-400 dark:text-gray-500 flex-shrink-0">Faster</span>
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">Faster</span>
       </div>
     </div>
   )

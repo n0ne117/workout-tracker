@@ -73,7 +73,7 @@ function SyncBanner({ sync }) {
       role="status"
       className={clsx(
         'fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3',
-        'px-4 py-3 rounded-xl shadow-lg text-sm font-medium border backdrop-blur-sm',
+        'px-4 py-3 rounded-xl shadow-lg text-sm font-medium border backdrop-blur-xs',
         'transition-all duration-300 w-[calc(100%-2rem)] max-w-sm',
         // Clear the phone tab bar; sit near the bottom edge on desktop.
         'bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-5',
@@ -82,9 +82,9 @@ function SyncBanner({ sync }) {
         state === 'error'   && 'bg-red-50/95 dark:bg-red-900/80 border-red-200 dark:border-red-700 text-red-800 dark:text-red-200',
       )}
     >
-      {state === 'running' && <RefreshCw size={16} className="animate-spin flex-shrink-0 text-brand-500" />}
-      {state === 'done'    && <CheckCircle size={16} className="flex-shrink-0 text-green-500" />}
-      {state === 'error'   && <AlertCircle size={16} className="flex-shrink-0 text-red-500" />}
+      {state === 'running' && <RefreshCw size={16} className="animate-spin shrink-0 text-brand-500" />}
+      {state === 'done'    && <CheckCircle size={16} className="shrink-0 text-green-500" />}
+      {state === 'error'   && <AlertCircle size={16} className="shrink-0 text-red-500" />}
 
       <div className="flex-1 min-w-0">
         {state === 'running' && (
@@ -109,7 +109,7 @@ function SyncBanner({ sync }) {
       )}
 
       {state !== 'running' && (
-        <button onClick={sync.reset} aria-label="Dismiss" className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+        <button onClick={sync.reset} aria-label="Dismiss" className="shrink-0 opacity-50 hover:opacity-100 transition-opacity">
           <X size={14} />
         </button>
       )}
@@ -127,7 +127,7 @@ function OfflineBanner() {
         bg-amber-50 text-amber-800 border-b border-amber-200
         dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800"
     >
-      <WifiOff size={15} className="flex-shrink-0" />
+      <WifiOff size={15} className="shrink-0" />
       <span>Can't reach the server — what you see may be incomplete.</span>
       <button onClick={() => window.location.reload()} className="underline underline-offset-2 hover:no-underline">
         Reload
@@ -157,7 +157,7 @@ export default function AppShell({ children }) {
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2 font-bold text-gray-900 dark:text-white md:mr-3 flex-shrink-0">
+          <Link to="/" className="flex items-center gap-2 font-bold text-gray-900 dark:text-white md:mr-3 shrink-0">
             <PixelRunner />
             <span className="text-sm">Workout Tracker</span>
           </Link>

@@ -160,7 +160,7 @@ function GpsBadge({ className = '' }) {
     <MapPin
       size={11}
       aria-label="Has GPS track"
-      className={'text-emerald-500 flex-shrink-0 ' + className}
+      className={'text-emerald-500 shrink-0 ' + className}
     />
   )
 }
@@ -279,7 +279,7 @@ function TableView({ rows, onToggle, linkState, selection }) {
                   >
                     {w.title}
                   </Link>
-                  {w.is_race && <Trophy size={11} className="text-yellow-500 flex-shrink-0" />}
+                  {w.is_race && <Trophy size={11} className="text-yellow-500 shrink-0" />}
                   {w.has_track && <GpsBadge />}
                 </div>
               </td>
@@ -322,7 +322,7 @@ function CardView({ rows, onToggle, linkState, selection }) {
                 isYear ? 'py-2.5 bg-gray-100 dark:bg-gray-800' : 'py-2 bg-gray-50 dark:bg-gray-800/50',
               )}
             >
-              <Chevron size={isYear ? 15 : 14} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              <Chevron size={isYear ? 15 : 14} className="text-gray-500 dark:text-gray-400 shrink-0" />
               <span className={isYear
                 ? 'text-sm font-bold text-gray-800 dark:text-gray-100'
                 : 'text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide'}>
@@ -371,14 +371,14 @@ function CardView({ rows, onToggle, linkState, selection }) {
                 <span className="text-[15px] font-semibold text-gray-900 dark:text-white truncate">
                   {w.title}
                 </span>
-                {w.is_race && <Trophy size={12} className="text-yellow-500 flex-shrink-0" />}
+                {w.is_race && <Trophy size={12} className="text-yellow-500 shrink-0" />}
                 {w.has_track && <GpsBadge />}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {meta.join(' · ')}
               </div>
             </div>
-            <div className="text-right flex-shrink-0">
+            <div className="text-right shrink-0">
               <div className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums">
                 {new Date(w.started_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
               </div>

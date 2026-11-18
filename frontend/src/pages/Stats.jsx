@@ -10,7 +10,7 @@ import { Loader2, TrendingUp, Activity, Map, Clock, Mountain, Trophy, ChevronLef
 function StatCard({ icon, label, value, sub }) {
   return (
     <div className="card p-4 flex items-center gap-3">
-      <div className="text-brand-500 dark:text-brand-400 flex-shrink-0">{icon}</div>
+      <div className="text-brand-500 dark:text-brand-400 shrink-0">{icon}</div>
       <div>
         <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
         <div className="text-xl font-bold text-gray-900 dark:text-white tabular-nums">{value}</div>
@@ -163,7 +163,7 @@ function SportBreakdown({ bySport, metric = 'count' }) {
     <div className="space-y-2">
       {sorted.map(({ sport, value }) => (
         <div key={sport} className="flex items-center gap-3">
-          <div className="w-28 flex items-center gap-1.5 flex-shrink-0">
+          <div className="w-28 flex items-center gap-1.5 shrink-0">
             <SportIcon sport={sport} size={14} variant="plain" />
             <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{formatSport(sport)}</span>
           </div>
@@ -177,7 +177,7 @@ function SportBreakdown({ bySport, metric = 'count' }) {
               }}
             />
           </div>
-          <span className="text-xs font-mono text-gray-500 w-16 text-right flex-shrink-0">{
+          <span className="text-xs font-mono text-gray-500 w-16 text-right shrink-0">{
             metric === 'distance_km' ? `${value.toFixed(0)} km`
             : metric === 'moving_hours' ? `${value.toFixed(0)}h`
             : value
@@ -240,7 +240,7 @@ export default function Stats() {
       <PeriodSummary />
 
       {/* All-time summary cards */}
-      <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide !mb-0">
+      <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
         All time
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -296,7 +296,7 @@ export default function Stats() {
               <button
                 onClick={() => setSelectedYear(y => Math.max(y - 1, minYear))}
                 disabled={selectedYear <= minYear}
-                className="p-0.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                className="p-0.5 rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -306,7 +306,7 @@ export default function Stats() {
               <button
                 onClick={() => setSelectedYear(y => Math.min(y + 1, maxYear))}
                 disabled={selectedYear >= maxYear}
-                className="p-0.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                className="p-0.5 rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight size={16} />
               </button>
@@ -319,7 +319,7 @@ export default function Stats() {
                 onClick={() => setChartMetric(key)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                   chartMetric === key
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs'
                     : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
@@ -351,7 +351,7 @@ export default function Stats() {
                 onClick={() => setSportMetric(key)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                   sportMetric === key
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs'
                     : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >

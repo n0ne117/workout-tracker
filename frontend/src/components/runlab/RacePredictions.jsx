@@ -57,7 +57,7 @@ function RunRow({ run, wfl }) {
     <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-xs tabular-nums text-gray-400 dark:text-gray-500 flex-shrink-0">
+          <span className="text-xs tabular-nums text-gray-400 dark:text-gray-500 shrink-0">
             {fmtDate(run.date)}
           </span>
           <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
@@ -68,7 +68,7 @@ function RunRow({ run, wfl }) {
           {run.distance_km} km &middot; {fmtTime(run.time_s)} &middot; {fmtPace(run.time_s, run.distance_km)}
         </p>
       </div>
-      <div className="text-right flex-shrink-0">
+      <div className="text-right shrink-0">
         {wfl ? (
           <>
             <p className="text-sm font-bold text-gray-800 dark:text-gray-200 tabular-nums leading-none">
@@ -104,7 +104,7 @@ function PredictionDetail({ prediction, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={onClose} />
 
       {/* Sheet */}
       <div className="relative w-full sm:max-w-md bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
@@ -204,10 +204,10 @@ function WflCard({ p, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="text-left rounded-xl bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200/70 dark:border-red-800/50 p-3 hover:border-red-400 dark:hover:border-red-600 hover:shadow-md transition-all group"
+      className="text-left rounded-xl bg-linear-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200/70 dark:border-red-800/50 p-3 hover:border-red-400 dark:hover:border-red-600 hover:shadow-md transition-all group"
     >
       <p className="text-xs font-semibold text-red-500 dark:text-red-400 mb-1 flex items-center gap-1">
-        <span className="w-2 h-2 rounded-full bg-red-500 inline-block flex-shrink-0" />
+        <span className="w-2 h-2 rounded-full bg-red-500 inline-block shrink-0" />
         Wings for Life
         <ChevronRight size={11} className="ml-auto opacity-0 group-hover:opacity-60 transition-opacity" />
       </p>
@@ -388,7 +388,7 @@ export default function RacePredictions() {
                   onChange={e => setCustomInput(e.target.value)}
                   onKeyDown={handleCustomKey}
                   placeholder="e.g. 25, 30km"
-                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                 />
               </div>
               <button

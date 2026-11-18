@@ -88,7 +88,7 @@ function ActiveCard({ c, onEdit, onDelete }) {
             <span className="flex items-center gap-1"><Clock size={13} /> {daysIn} day{daysIn !== 1 ? 's' : ''} in progress</span>
           </div>
         </div>
-        <div className="flex gap-1 flex-shrink-0">
+        <div className="flex gap-1 shrink-0">
           <button onClick={() => onEdit(c)} className="btn-ghost p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={14} /></button>
           <button onClick={() => onDelete(c)} className="btn-ghost p-1.5 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
         </div>
@@ -101,11 +101,11 @@ function CompletedRow({ c, onEdit, onDelete }) {
   const days = c.start_date && c.end_date ? daysBetween(new Date(c.end_date), new Date(c.start_date)) : null
   return (
     <div className="flex items-center gap-3 py-2.5 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 rounded-lg group transition-colors">
-      <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
+      <CheckCircle2 size={14} className="text-green-500 shrink-0" />
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate block">{c.name}</span>
       </div>
-      <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums">
+      <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 shrink-0 tabular-nums">
         <span className="w-16 text-right font-medium text-gray-700 dark:text-gray-300">{c.distance_km} km</span>
         <span className="w-40 text-center">
           {c.start_date && c.end_date
@@ -114,7 +114,7 @@ function CompletedRow({ c, onEdit, onDelete }) {
         </span>
         <span className="w-16 text-right">{days != null ? `${days}d` : '—'}</span>
       </div>
-      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(c)} className="btn-ghost p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={13} /></button>
         <button onClick={() => onDelete(c)} className="btn-ghost p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
       </div>
@@ -158,11 +158,11 @@ function BacklogRow({ c, onEdit, onDelete }) {
   const urgency = expiryUrgency(c.use_before)
   return (
     <div className="flex items-center gap-3 py-2.5 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 rounded-lg group transition-colors">
-      <Clock size={14} className="text-gray-400 flex-shrink-0" />
+      <Clock size={14} className="text-gray-400 shrink-0" />
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate block">{c.name}</span>
       </div>
-      <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums">
+      <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 shrink-0 tabular-nums">
         <span className="w-16 text-right font-medium text-gray-700 dark:text-gray-300">{c.distance_km} km</span>
         <span className="w-36 text-right">
           {c.purchase_date ? `Bought ${formatDate(c.purchase_date)}` : '—'}
@@ -179,7 +179,7 @@ function BacklogRow({ c, onEdit, onDelete }) {
           ) : '—'}
         </span>
       </div>
-      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(c)} className="btn-ghost p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><Pencil size={13} /></button>
         <button onClick={() => onDelete(c)} className="btn-ghost p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
       </div>
@@ -248,7 +248,7 @@ function ChallengeModal({ initial, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <h2 className="font-semibold text-gray-900 dark:text-white">{isEdit ? 'Edit Challenge' : 'Add Challenge'}</h2>
           <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
         </div>
@@ -478,7 +478,7 @@ export default function Conqueror() {
               </h2>
               {/* column headers */}
               <div className="hidden sm:flex items-center gap-3 px-4 py-1 text-[11px] text-gray-400 uppercase tracking-wide mb-1">
-                <div className="w-4 flex-shrink-0" />
+                <div className="w-4 shrink-0" />
                 <div className="flex-1" />
                 <span className="w-16 text-right">Distance</span>
                 <span className="w-36 text-right">Purchased</span>

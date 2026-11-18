@@ -82,7 +82,7 @@ export default function Health() {
 
   const header = (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center flex-shrink-0">
+      <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center shrink-0">
         <HeartPulse size={19} className="text-brand-600 dark:text-brand-400" />
       </div>
       <div className="flex-1 min-w-0">
@@ -161,7 +161,7 @@ export default function Health() {
               className={clsx(
                 'px-3 py-1 rounded-md text-xs font-medium transition-colors',
                 range === r.key
-                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs'
                   : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
               )}
             >
@@ -333,7 +333,7 @@ function Trends({ series, fields, domain }) {
                       </Link>
                       <Explainer field={f} />
                     </p>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <p className="text-sm text-gray-900 dark:text-white whitespace-nowrap">{formatValue(f, latest.mean)}</p>
                       {cmp && meta(f).group !== 'Training' && <Verdict verdict={cmp.verdict} short />}
                     </div>

@@ -214,10 +214,10 @@ export default function WorkoutTrimmer({ trackPoints, onSave, onCancel, saving }
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0a0a0f' }}>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
+      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0"
            style={{ background: '#111118', borderColor: '#1f1f2e' }}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <Scissors size={17} className="text-blue-400 flex-shrink-0" />
+          <Scissors size={17} className="text-blue-400 shrink-0" />
           <span className="font-semibold text-white text-[15px]">Trim GPS Track</span>
           <span className="hidden sm:block text-xs text-gray-500 truncate">
             · drag the green / red markers, or use the sliders
@@ -225,7 +225,7 @@ export default function WorkoutTrimmer({ trackPoints, onSave, onCancel, saving }
         </div>
         <button
           onClick={onCancel}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex-shrink-0"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors shrink-0"
           style={{ background: 'transparent' }}
           onMouseEnter={e => e.currentTarget.style.background = '#1f1f2e'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -239,7 +239,7 @@ export default function WorkoutTrimmer({ trackPoints, onSave, onCancel, saving }
         <div ref={mapContainerRef} className="absolute inset-0" />
 
         {/* Kept / Trimmed legend */}
-        <div className="absolute bottom-3 left-3 z-[1000] rounded-xl px-3 py-2.5 text-xs space-y-1.5 pointer-events-none"
+        <div className="absolute bottom-3 left-3 z-1000 rounded-xl px-3 py-2.5 text-xs space-y-1.5 pointer-events-none"
              style={{ background: 'rgba(0,0,0,.72)', backdropFilter: 'blur(8px)' }}>
           <div className="flex items-center gap-2 text-gray-200">
             <div className="w-5 h-1.5 rounded-full bg-blue-500" />
@@ -252,14 +252,14 @@ export default function WorkoutTrimmer({ trackPoints, onSave, onCancel, saving }
         </div>
 
         {/* Point counter */}
-        <div className="absolute bottom-3 right-3 z-[1000] rounded-xl px-2.5 py-1.5 text-xs text-gray-400 pointer-events-none tabular-nums"
+        <div className="absolute bottom-3 right-3 z-1000 rounded-xl px-2.5 py-1.5 text-xs text-gray-400 pointer-events-none tabular-nums"
              style={{ background: 'rgba(0,0,0,.72)', backdropFilter: 'blur(8px)' }}>
           {keptCount.toLocaleString()} / {n.toLocaleString()} pts
         </div>
       </div>
 
       {/* ── Controls panel ── */}
-      <div className="flex-shrink-0 border-t p-4 space-y-4"
+      <div className="shrink-0 border-t p-4 space-y-4"
            style={{ background: '#111118', borderColor: '#1f1f2e' }}>
 
         {/* Track bar — visual overview of selection */}
@@ -332,7 +332,7 @@ export default function WorkoutTrimmer({ trackPoints, onSave, onCancel, saving }
           <button
             onClick={handleReset}
             title="Reset to full track"
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm text-gray-400 hover:text-gray-200 transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm text-gray-400 hover:text-gray-200 transition-colors shrink-0"
             style={{ background: '#1f1f2e' }}
           >
             <RotateCcw size={15} />

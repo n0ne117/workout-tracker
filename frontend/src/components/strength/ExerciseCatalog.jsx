@@ -79,7 +79,7 @@ export default function ExerciseCatalog() {
         </div>
         {editing && !editing.id && form}
         {error && !editing && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
-        <ul className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[28rem] overflow-y-auto">
+        <ul className="divide-y divide-gray-100 dark:divide-gray-800 max-h-112 overflow-y-auto">
           {shown.map(e => (
             <li key={e.id} className="py-2">
               {editing?.id === e.id ? form : (
