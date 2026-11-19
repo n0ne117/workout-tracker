@@ -78,6 +78,11 @@ jobs:
           platforms: linux/amd64
           load: true
           provenance: false   # keeps the GHCR package page showing one clean manifest
+          # Always the newest base images, and the runtime stage (nginx and the
+          # OS packages) never from cache, so every release carries the latest
+          # Debian security fixes. The dependency stages still cache.
+          pull: true
+          no-cache-filters: runtime
           tags: ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -108,6 +113,28 @@ jobs:
           test -f /tmp/wt-data/workouts.db || { echo "::error::database not created"; exit 1; }
           echo "smoke test passed"
           docker rm -f smoke
+
+      # Known vulnerabilities in the image's OS packages and Python libraries,
+      # written to the run summary. Fails the release only for a critical one
+      # that already has a fix — a fresh build should have picked that up.
+      # Run from an image pinned by digest rather than Trivy's GitHub Action,
+      # whose tags were hijacked in March 2026.
+      - name: Scan the image
+        env:
+          TRIVY: ghcr.io/aquasecurity/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+        run: |
+          IMAGE="${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}"
+          trivy() {
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v trivy-cache:/root/.cache \
+              "$TRIVY" image --quiet --scanners vuln "$@" "$IMAGE"
+          }
+          {
+            echo "### Image scan (high and critical, including not yet fixed)"
+            echo '```'
+            trivy --severity HIGH,CRITICAL --format table
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          trivy --severity CRITICAL --ignore-unfixed --exit-code 1 --format table
 
       - name: Push
         run: |

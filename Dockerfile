@@ -8,7 +8,7 @@
 # default thread stack allows, and from Rollup 4.68 it fails on React 19's
 # react-dom with a misleading "Code is nested too deeply". Only this build
 # stage is affected; nothing from it but the built files reaches the image.
-FROM node:22-slim AS frontend
+FROM node:24-slim AS frontend
 
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
@@ -29,14 +29,19 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ── Stage 3: runtime ─────────────────────────────────────────────────────────
-FROM python:3.14-slim
+# Named so the release workflow can rebuild it uncached: this is the layer that
+# installs nginx and the OS packages the app ships with, and a cached copy
+# would keep yesterday's versions after Debian publishes a security fix.
+FROM python:3.14-slim AS runtime
 
 LABEL org.opencontainers.image.title="Workout Tracker" \
       org.opencontainers.image.description="Self-hosted training log with Intervals.icu, Garmin and FIT/GPX import" \
       org.opencontainers.image.source="https://github.com/n0ne117/workout-tracker"
 
-# nginx only; gcc was needed to build wheels, not to run them.
+# nginx only; gcc was needed to build wheels, not to run them. The upgrade pulls
+# in Debian security fixes released since the Python base image was built.
 RUN apt-get update \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends nginx \
  && rm -rf /var/lib/apt/lists/* \
  && rm -f /etc/nginx/sites-enabled/default
