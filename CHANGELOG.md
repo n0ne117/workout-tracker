@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.13.2
+
+### Security
+
+- **nginx2shell (CVE-2026-123007 and related nginx flaws):** the app's own
+  nginx is not exposed — it serves plain HTTP/1.1 and uses none of the affected
+  features. Every release now rebuilds the OS layer without cache and applies
+  Debian's latest security updates, so the fixed nginx ships as soon as Debian
+  publishes it, and each image is scanned for known vulnerabilities before it
+  is released. If you run a reverse proxy in front of the app with HTTP/2
+  (Nginx Proxy Manager, for example), update it: that is where these flaws
+  matter.
+
+### Changed
+
+- React Router 8, FastAPI 0.165, and the frontend builds on Node 24.
+
 ## 1.13.1
 
 ### Changed
